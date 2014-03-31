@@ -6,7 +6,8 @@ use strict;
 sub new
 {
   my $class = shift;
-  my $self = {stack => [], top => undef};
+  my $self = {stack => [], top => undef, rootAccum => ''};
+  $self->{accum} = \$self->{rootAccum};
   bless $self, $class;
   return $self;
 }
@@ -26,7 +27,7 @@ sub push
   }
   push @{$self->{stack}}, $el;
   $self->{top} = $el;
-  $self->{accum}= $self->{top}->getAccum();
+  $self->{accum} = $self->{top}->getAccum();
 }
 
 sub getAccum
@@ -38,6 +39,39 @@ sub top
 {
   my $self = shift;
   return $self->{top};
+}
+
+sub getFlags
+{
+  my $self = shift;
+  if ( ! @{$self->{stack}})
+  {
+    return {
+             'findEquals' => undef,
+             'findPipe' => undef,
+             'inHeading' => undef,
+           }
+  }
+  return $self->top()->getFlags();
+}
+
+sub pop
+{
+  my $self = shift;
+  die 'no elements remaining' unless @{$self->{stack}};
+
+  my $temp = pop( $self->{stack});
+
+  if ( @{$self->{stack}} )
+  {
+    $self->{top} = $self->{stack}->[-1];
+    $self->{accum} = $self->{top}->getAccum();
+  } else
+  {
+    $self->{top} = undef;
+    $self->{accum} = \$self->{rootAccum};
+  }
+  return $temp;
 }
 
 1;

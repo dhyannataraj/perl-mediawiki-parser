@@ -1,0 +1,8 @@
+This project tragets to create perl implementation of 
+Mediawiki parser.
+
+Since perl and php have some lexical similarity, I would
+take code from current php includes/parser/Preprocessor_DOM.php
+fix the lexical diffirence and make it properly work.
+
+Current project status: does not work at all, initial efforts are taken

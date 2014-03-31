@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 ini_set("display_errors", "on");
 
 
-define('WIKIDIR','/.data/home/nataraj/Projects/mediawiki/mediawiki-1.20.3/');
+define('WIKIDIR','/.data/home/nataraj/Projects/mediawiki/perl-mediawiki-parser/mediawiki-1.20.3/');
 chdir(WIKIDIR);
 include WIKIDIR."includes/debug/Debug.php";
 include WIKIDIR."includes/Exception.php";
@@ -17,14 +17,18 @@ include WIKIDIR."includes/parser/Preprocessor_DOM.php";
 
 $p = new Parser();
 $pp = new Preprocessor_DOM($p);
-$text = '==123==
+$text = "==123==
 Some paragraph
 
 Second
 multiline
 parapraph
 
-{{test|test}}';
+
+and '''italc''' text
+{{test11|test22}}";
+
+/*
 if(isset($argv)){
     if(isset($argv[1]) && $argv[1]){
         $text = $argv[1];
@@ -38,8 +42,9 @@ if(isset($argv)){
 ?>
 
 <plaintext>
+
 <?php
-}
+}*/
 
 
 

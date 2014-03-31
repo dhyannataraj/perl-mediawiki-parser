@@ -5,7 +5,7 @@ sub new
   my $class = shift;
   my $self = {};
   
-  my %params = @_;
+  my $params = shift;
 
   my @keys = (
   		'open',		   # // Opening character (\n for heading)
@@ -17,10 +17,10 @@ sub new
 );
   foreach my $key (@keys)
   {
-    $self->{$key} = $params{$key} || undef;
-    delete $params{$key};
+    $self->{$key} = $params->{$key} || undef;
+    delete $params->{$key};
   }
-  die "There are unexpected keys (".join(", ",keys(%params)).")in params in WikiDOM::Mediawiki::PreprocessorStackElement::new" if keys(%params);
+  die "There are unexpected keys (".join(", ",keys(%$params)).")in params in WikiDOM::Mediawiki::PreprocessorStackElement::new" if keys(%$params);
   bless $self, $class;
   return $self;
 }
@@ -31,6 +31,18 @@ sub close
   return $self->{close};
 }
 
+sub open
+{
+  my $self = shift;
+  return $self->{open};
+}
+
+sub startPos
+{
+  my $self = shift;
+  return $self->{startPos};
+}
+
 sub getAccum
 {
   my $self = shift;
@@ -38,5 +50,29 @@ sub getAccum
   return $part->out();
 }
 
+sub getFlags
+{
+  my $self = shift;
+  
+  my $partCount = int (@{$self->{parts}} );
+  my $findPipe = $self->{open} ne "\n" && $self->{open} ne '[';
+  return {
+            'findPipe' => $findPipe,
+            'findEquals' => $findPipe && $partCount > 1 && ! defined( $self->{parts}->[-1]->{eqpos} ), # FIXME eqpos not implemented
+            'inHeading' => $self->{open} eq "\n",
+         }
+}
+
+sub getCurrentPart
+{
+  my $self = shift;
+  return $self->{parts}->[-1];
+}
+
+sub count
+{
+  my $self = shift;
+  return int @{$self->{parts}};
+}
 
 1;

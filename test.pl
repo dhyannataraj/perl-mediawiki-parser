@@ -5,16 +5,25 @@ use warnings;
 use utf8;
 
 use WikiDOM::Mediawiki::PreprocessorStack;
+use WikiDOM::Mediawiki::PreprocessorPart;
 use WikiDOM::Mediawiki::PhpStrings;
 
-my $text = '==123==
+#use Carp::Always;
+
+my $text = '=================
+
+
+==123==
 Some paragraph
+
 
 Second
 multiline
 parapraph
 
 {{test|test}}'; # В теории должны получать в качестве параметра функции
+my $flags = 0; # shift || 0
+
 
 my $rules = { "{" => { 'end' => '}',                        # } {  -- for stupid highlighter
                       'names' => { 2 => 'template',
@@ -41,6 +50,7 @@ my $enableOnlyinclude = 0; # $enableOnlyinclude = false;
 
 my $stack = new WikiDOM::Mediawiki::PreprocessorStack();
 my $searchBase = "[{<\n"; #}
+my $revText = strrev( $text );  #// For fast reverse searches
 my $lengthText = strlen( $text );
 
 my $i = 0;                     # Input pointer, starts out pointing to a pseudo-newline before the start
@@ -49,6 +59,7 @@ $$accum = '<root>';
 
 my $findEquals = undef;            # True to find equals signs in arguments
 my $findPipe = undef;              # True to take notice of pipe characters
+my $headingIndex = 1;
 my $inHeading = 0;                 # True if $i is inside a possible heading
 my $findOnlyinclude = $enableOnlyinclude; # True to ignore all input up to the next <onlyinclude>
 my $fakeLineStart = 1;     # Do a line-start run without outputting an LF character
@@ -66,9 +77,19 @@ my $matches;
 #
 my $count;
 my $piece;
+my $part;
+my $wsLength;
+my $searchStart;
+my $equalsLength;
+my $element;
 
 while ()
 {
+print "=======\n";
+print "i = $i \n";
+print "accum = ".$$accum."\n";
+print "=======\n";
+
 			if ( $fakeLineStart ) {
 				$found = 'line-start';
 				$curChar = '';
@@ -92,11 +113,11 @@ while ()
 				# Output literal section, advance input counter
 				$literalLength = strcspn( $text, $search, $i );
 				if ( $literalLength > 0 ) {
-					$$accum .= htmlspecialchars( substr( $text, $i, $literalLength ) );
+					$$accum .=  htmlspecialchars( substr( $text, $i, $literalLength ) );
 					$i += $literalLength;
 				}
 				if ( $i >= $lengthText ) {
-					if ( $currentClosing == "\n" ) {
+					if ( $currentClosing eq "\n" ) {
 						#// Do a past-the-end run to finish off the heading
 						$curChar = '';
 						$found = 'line-end';
@@ -106,19 +127,19 @@ while ()
 					}
 				}  else {
 					$curChar = substr($text,$i,1);  #$curChar = $text[$i];
-					if ( $curChar == '|' ) {
+					if ( $curChar eq '|' ) {
 						$found = 'pipe';
-					} elsif ( $curChar == '=' ) {
+					} elsif ( $curChar eq '=' ) {
 						$found = 'equals';
-					} elsif ( $curChar == '<' ) {
+					} elsif ( $curChar eq '<' ) {
 						$found = 'angle';
-					} elsif ( $curChar == "\n" ) {
+					} elsif ( $curChar eq "\n" ) {
 						if ( $inHeading ) {
 							$found = 'line-end';
 						} else {
 							$found = 'line-start';
 						}
-					} elsif ( $curChar == $currentClosing ) {
+					} elsif ( $curChar eq $currentClosing ) {
 						$found = 'close';
 					} elsif ( defined( $rules->{$curChar} ) ) {  #} elsif ( isset( $rules[$curChar] ) ) {
 						$found = 'open';
@@ -276,61 +297,98 @@ if ( $found eq 'line-start' ) {
 				if ( $fakeLineStart ) {
 					$fakeLineStart = 0;  # $fakeLineStart = false;
 				} else {
-					$accum .= $curChar;
+					$$accum .= $curChar;
 					$i++;
 				}
-
 				$count = strspn( $text, '=', $i, 6 );
 				if ( $count == 1 && $findEquals ) {
 					#// DWIM: This looks kind of like a name/value separator
 					#// Let's let the equals handler have it and break the potential heading
 					#// This is heuristic, but AFAICT the methods for completely correct disambiguation are very complex.
-				} #elsif ( $count > 0 ) {
-#					$piece = array(
-#						'open' => "\n",
-#						'close' => "\n",
-#						'parts' => array( new PPDPart( str_repeat( '=', $count ) ) ),
-#						'startPos' => $i,
-#						'count' => $count );
-#					$stack->push( $piece );
-#					$accum = $stack->getAccum();
-#					$flags = $stack->getFlags();
-#					extract( $flags );
-#					$i += $count;
-#				}
-#			} elsif ( $found == 'line-end' ) {
-
+				} elsif ( $count > 0 ) {
+					$piece = { # array(
+						'open' => "\n",
+						'close' => "\n",
+						'parts' => [ new WikiDOM::Mediawiki::PreprocessorPart('=' x $count)  ], # array( new PPDPart( str_repeat( '=', $count ) ) ),
+						'startPos' => $i,
+						'count' => $count }; # );
+					$stack->push( $piece );
+					$accum = $stack->getAccum();
+					$flags = $stack->getFlags();
+					$findEquals = $flags->{findEquals}; # extract( $flags );
+					$findPipe = $flags->{findPipe}; # extract( $flags );
+					$inHeading = $flags->{inHeading}; # extract( $flags );
+					$i += $count;
+				}
+			} elsif ( $found eq 'line-end' ) {
+				$piece = $stack->top;
+				#// A heading must be open, otherwise \n wouldn't have been in the search list
+				warn '$piece->open eq "\n"' unless $piece->open eq "\n";        # assert( '$piece->open == "\n"' );
+				$part = $piece->getCurrentPart();
+				#// Search back through the input to see if it has a proper close
+				#// Do this using the reversed string since the other solutions (end anchor, etc.) are inefficient
+				$wsLength = strspn( $revText, " \t", $lengthText - $i );
+				$searchStart = $i - $wsLength;
+				if ( isset( $part->commentEnd ) && $searchStart - 1 eq $part->commentEnd ) {
+					#// Comment found at line end
+					#// Search for equals signs before the comment
+					$searchStart = $part->visualEnd;
+					$searchStart -= strspn( $revText, " \t", $lengthText - $searchStart );
+				}
+				$count = $piece->count;
+				$equalsLength = strspn( $revText, '=', $lengthText - $searchStart );
+				if ( $equalsLength > 0 ) {
+					if ( $searchStart - $equalsLength == $piece->startPos ) {
+						#// This is just a single string of equals signs on its own line
+						#// Replicate the doHeadings behaviour /={count}(.+)={count}/
+						#// First find out how many equals signs there really are (don't stop at 6)
+						$count = $equalsLength;
+						if ( $count < 3 ) {
+							$count = 0;
+						} else {
+							$count = min( 6, intval( ( $count - 1 ) / 2 ) );
+						}
+					} else {
+						$count = min( $equalsLength, $count );
+					}
+					if ( $count > 0 ) {
+						#// Normal match, output <h>
+						$element = "<h level=\"$count\" i=\"$headingIndex\">$$accum</h>";
+						$headingIndex++;
+					} else {
+						#// Single equals sign on its own line, count=0
+						$element = $accum;
+					}
+				} else {
+					#// No match, no <h>, just pass down the inner text
+					$element = $accum;
+				}
+				#// Unwind the stack
+				$stack->pop();
+				$accum = $stack->getAccum();
+				$flags = $stack->getFlags();
+				$findEquals = $flags->{findEquals}; # extract( $flags );
+				$findPipe = $flags->{findPipe}; # extract( $flags );
+				$inHeading = $flags->{inHeading}; # extract( $flags );
+#
+#				#// Append the result to the enclosing accumulator
+				$$accum .= $element;
+#				#// Note that we do NOT increment the input pointer.
+#				#// This is because the closing linebreak could be the opening linebreak of
+#				#// another heading. Infinite loops are avoided because the next iteration MUST
+#				#// hit the heading open case above, which unconditionally increments the
+#				#// input pointer.
+#			} elsif ( $found == 'open' ) {
 
 			}
+last if $i>=length($text);
   last if $i>1000;  # foolproof for now
   $i++;
 }
 
 
 # clones of some native php functions to make parser code more similar to original php code
-sub strlen
-{
-  return length($_);
-}
 
-sub strcspn
-{
-  my $str = shift;
-  my $chars = shift;
-  my $start = shift || 0;
-  
-  $str = substr $str, $start;
-  
-  my $res = length($str);
-  
-  
-  foreach my $char (split //,$chars)
-  {
-    my $i = index($str,$char);
-    $res = $i if $i>-1 && $res>$i;
-  }
-  return $res;
-}
 
 sub htmlspecialchars
 {
@@ -344,83 +402,22 @@ sub htmlspecialchars
   return $string;
 }
 
-=cut
-sub strspn
+sub isset
 {
-   my $subject = shift;
-   my $mask = shift;
-   my $start = shift;
-   my $length = length;
-   
-   $start = length($subject) + $start if $start<0;
-   my @amask = split //, $mask;
-   my $count=0;
-   while ($count <=$length)
-   {
-     my $found = 0;
-     my $char = substr($subject, $start+$count,1);
-     
-     for (my $i=0; $i<=$#amask;$i++)
-     {
-       if ($char eq $amask[$i])
-       {
-         $found = 1;
-         last;
-       }
-     }
-     last unless $found;
-   }
+  return defined shift;
 }
-=cut
 
-=cut
-    if ( $findPipe ) {
-      $search .= '|';
-    }
-    if ( $findEquals ) {
-      # First equals will be for the template
-      $search .= '=';
-    }
-    $rule = undef;
-    # Output literal section, advance input counter
-    $literalLength = strcspn( $text, $search, $i );
-    if ( $literalLength > 0 ) {
-#      $accum .= htmlspecialchars( substr( $text, $i, $literalLength ) );
-      $i += $literalLength;
-    }
-    if ( $i >= $lengthText ) {
-      if ( $currentClosing == "\n" ) {
-        # Do a past-the-end run to finish off the heading
-        $curChar = '';
-        $found = 'line-end';
-      } else {
-        # All done
-        break;
-          }
-    } else {
-#      $curChar = $text[$i];
-      if ( $curChar == '|' ) {
-        $found = 'pipe';
-      } elsif ( $curChar == '=' ) {
-        $found = 'equals';
-      } elsif ( $curChar == '<' ) {
-        $found = 'angle';
-      } elsif ( $curChar == "\n" ) {
-        if ( $inHeading ) {
-          $found = 'line-end';
-        } else {
-          $found = 'line-start';
-        }
-      } elsif ( $curChar == $currentClosing ) {
-        $found = 'close';
-      } elsif ( isset( $rules[$curChar] ) ) {
-        $found = 'open';
-        $rule = $rules[$curChar];
-      } else {
-        # Some versions of PHP have a strcspn which stops on null characters
-        # Ignore and continue
-        ++$i;
-        last;
-      }
-    }
-=cut
+sub min
+{
+  my @l = @_;
+  my $min = $l[0];
+  foreach my $el (@l)
+  {
+    $min = $el if $el<$min;
+  }
+  return $min;
+}
+sub intval
+{
+  return int(shift);
+}

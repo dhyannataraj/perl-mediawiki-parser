@@ -242,9 +242,9 @@ class Preprocessor_DOM implements Preprocessor {
 
 		// Use "A" modifier (anchored) instead of "^", because ^ doesn't work with an offset
 		$elementsRegex = "~($xmlishRegex)(?:\s|\/>|>)|(!--)~iA";
-echo "%%+++++++++++++++++++++++++++++++++\n";
-var_dump($xmlishElements);
-echo "%%+++++++++++++++++++++++++++++++++\n";
+#echo "%%+++++++++++++++++++++++++++++++++\n";
+#var_dump($xmlishElements);
+#echo "%%+++++++++++++++++++++++++++++++++\n";
 
 		$stack = new PPDStack;
 
@@ -262,11 +262,11 @@ echo "%%+++++++++++++++++++++++++++++++++\n";
 		$noMoreGT = false;         # True if there are no more greater-than (>) signs right of $i
 		$findOnlyinclude = $enableOnlyinclude; # True to ignore all input up to the next <onlyinclude>
 		$fakeLineStart = true;     # Do a line-start run without outputting an LF character
-echo "============================\n";
-var_dump($rules);
-echo "----------------------------\n";
-var_dump($searchBase);
-echo "============================\n";
+#echo "============================\n";
+#var_dump($rules);
+#echo "----------------------------\n";
+#var_dump($searchBase);
+#echo "============================\n";
 		while ( true ) {
 			//$this->memCheck();
 #echo "----------------------------\n";
@@ -312,6 +312,9 @@ echo "============================\n";
 				$literalLength = strcspn( $text, $search, $i );
 				if ( $literalLength > 0 ) {
 					$accum .= htmlspecialchars( substr( $text, $i, $literalLength ) );
+echo "============================\n";
+var_dump($accum);
+echo "============================\n";
 					$i += $literalLength;
 				}
 				if ( $i >= $lengthText ) {
@@ -833,7 +836,7 @@ class PPDStackElement {
 
 	function addPart( $s = '' ) {
 
-echo "+++++++++++++++ Adding part: $s  +++++++++++++++++\n";
+#echo "+++++++++++++++ Adding part: $s  +++++++++++++++++\n";
 		$class = $this->partClass;
 		$this->parts[] = new $class( $s );
 	}

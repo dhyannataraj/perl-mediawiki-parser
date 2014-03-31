@@ -2,6 +2,9 @@
 
 <?php
 
+#echo strcspn('0123456789===ppp','ppp',10);
+echo intval(3/2);
+/*
 class test_class {
   var $value;
   function __construct( $value = '' ) {
@@ -22,6 +25,6 @@ $o1->value++;
 var_dump($o1);
 var_dump($o2);
 var_dump($o3);
-var_dump($o4);
+var_dump($o4);*/
 
 ?>

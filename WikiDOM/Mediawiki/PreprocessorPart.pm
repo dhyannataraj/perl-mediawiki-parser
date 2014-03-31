@@ -4,8 +4,6 @@ use strict;
 use warnings;
 use utf8;
 
-use Data::Alias;
-
 sub new
 {
   my $class = shift;
@@ -23,6 +21,18 @@ sub out
 #  alias my $out = $self->{out};
 #  return \$out
    return \$self->{out};
+}
+
+sub commentEnd
+{
+  my $self = shift;
+  return $self->{commentEnd};
+}
+
+sub visualEnd
+{
+  my $self = shift;
+  return $self->{visualEnd};
 }
 
 1;
