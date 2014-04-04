@@ -19,6 +19,10 @@ use Test::More 'no_plan';
 
 my $stack = new WikiDOM::Mediawiki::PreprocessorStack();
 
+
+use Data::Dumper;
+print Dumper $stack;
+
 is ref($stack), 'WikiDOM::Mediawiki::PreprocessorStack';
 is @{$stack->{'stack'}}, 0;
 
@@ -30,6 +34,8 @@ ok $stack->push ({
 						'startPos' => 1, # $i,
 						'count' => 2 #$count
 		});
+print Dumper $stack;
+
 is @{$stack->{'stack'}}, 1;
 my $el = $stack->{'stack'}->[0];
 is ref $el, 'WikiDOM::Mediawiki::PreprocessorStackElement';
@@ -37,7 +43,7 @@ ok ($el->{open} eq "\n" && $el->{close} eq "\n"  && $el->{startPos} == 1 && $el-
 ok (int  @{$el->{parts}} == 1 && ref $el->{parts}->[0] eq 'WikiDOM::Mediawiki::PreprocessorPart' && ${$el->{parts}->[0]->out()} eq '==');
 is $el->close, "\n";
 is $el->open, "\n";
-is $el->count, 1;
+is $el->count, 2;
 
 # Now check that accum is accessable evrywhere along the hierarchy
 ${$el->{parts}->[0]->out()} = '##';
@@ -48,6 +54,8 @@ $$accum_ref = '$$';
 ok( ${$el->{parts}->[0]->out()} eq '$$' && ${$stack->top()->getAccum()} eq '$$' && ${$stack->getAccum()} eq '$$') ;
 
 
+$stack->pop();
+print Dumper $stack;
 
 
 #use Data::Dumper;

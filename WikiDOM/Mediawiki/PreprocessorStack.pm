@@ -40,6 +40,11 @@ sub top
   my $self = shift;
   return $self->{top};
 }
+sub stack
+{
+  my $self = shift;
+  return $self->{stack};
+}
 
 sub getFlags
 {
@@ -60,7 +65,7 @@ sub pop
   my $self = shift;
   die 'no elements remaining' unless @{$self->{stack}};
 
-  my $temp = pop( $self->{stack});
+  my $temp = pop($self->{stack});
 
   if ( @{$self->{stack}} )
   {
@@ -71,7 +76,27 @@ sub pop
     $self->{top} = undef;
     $self->{accum} = \$self->{rootAccum};
   }
+
   return $temp;
+}
+
+sub addPart
+{
+  my $this = shift;
+  my $s = shift || '';
+  $this->top->addPart( $s );
+  $this->{accum} = $this->{top}->getAccum();
+}
+
+sub getCurrentPart
+{
+  my $this = shift;
+  if ( ! $this->{top} )
+  {
+    return undef;
+  } else {
+    return $this->{top}->getCurrentPart();
+  }
 }
 
 1;

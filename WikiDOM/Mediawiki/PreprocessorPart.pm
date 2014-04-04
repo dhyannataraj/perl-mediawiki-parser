@@ -35,4 +35,10 @@ sub visualEnd
   return $self->{visualEnd};
 }
 
+sub eqpos
+{
+  my $self = shift;
+  return $self->{eqpos};
+}
+
 1;

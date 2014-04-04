@@ -8,9 +8,10 @@ use WikiDOM::Mediawiki::PreprocessorStack;
 use WikiDOM::Mediawiki::PreprocessorPart;
 use WikiDOM::Mediawiki::PhpStrings;
 
-#use Carp::Always;
 
-my $text = '=================
+# use Carp::Always;
+
+my $text = '
 
 
 ==123==
@@ -20,8 +21,29 @@ Some paragraph
 Second
 multiline
 parapraph
+{{context|archaic|lang=fr}}
+';
 
-{{test|test}}'; # В теории должны получать в качестве параметра функции
+# $text = '{{{aaaaa}}'; # Special case {{{ }} are both valid beging and end, but missmatching
+
+
+$text ='{{BrockenSyntax|qqq=uuu|222';
+
+#'; # В теории должны получать в качестве параметра функции
+
+=cut 
+#WTF?!!
+$text = "123{{1122 }}=================
+
+
+==123==
+Some paragraph
+
+
+";
+=cut
+
+
 my $flags = 0; # shift || 0
 
 
@@ -57,6 +79,19 @@ my $i = 0;                     # Input pointer, starts out pointing to a pseudo-
 my $accum = $stack->getAccum();   # Current accumulator
 $$accum = '<root>';
 
+
+
+################################33
+#use Data::Dumper;
+#print  Dumper [$accum, $stack];
+
+
+
+#die;
+#################################
+
+
+
 my $findEquals = undef;            # True to find equals signs in arguments
 my $findPipe = undef;              # True to take notice of pipe characters
 my $headingIndex = 1;
@@ -82,13 +117,28 @@ my $wsLength;
 my $searchStart;
 my $equalsLength;
 my $element;
+my $maxCount;
+my $matchingCount;
+my $name;
+my $parts;
+my $title;
+my $attr;
+my $argIndex;
+my $argName;
+my $argValue;
+my $names;
+my $skippedBraces;
+my $enclosingAccum;
 
 while ()
 {
-print "=======\n";
-print "i = $i \n";
-print "accum = ".$$accum."\n";
-print "=======\n";
+#print "=======\n";
+#print "i = $i \n";
+#print "accum = ".$$accum."\n";
+
+#use Data::Dumper;
+#print Dumper $stack;
+#print "=======\n";
 
 			if ( $fakeLineStart ) {
 				$found = 'line-start';
@@ -357,11 +407,11 @@ if ( $found eq 'line-start' ) {
 						$headingIndex++;
 					} else {
 						#// Single equals sign on its own line, count=0
-						$element = $accum;
+						$element = $$accum;
 					}
 				} else {
 					#// No match, no <h>, just pass down the inner text
-					$element = $accum;
+					$element = $$accum;
 				}
 				#// Unwind the stack
 				$stack->pop();
@@ -370,24 +420,178 @@ if ( $found eq 'line-start' ) {
 				$findEquals = $flags->{findEquals}; # extract( $flags );
 				$findPipe = $flags->{findPipe}; # extract( $flags );
 				$inHeading = $flags->{inHeading}; # extract( $flags );
-#
-#				#// Append the result to the enclosing accumulator
+				
+				#// Append the result to the enclosing accumulator
 				$$accum .= $element;
-#				#// Note that we do NOT increment the input pointer.
-#				#// This is because the closing linebreak could be the opening linebreak of
-#				#// another heading. Infinite loops are avoided because the next iteration MUST
-#				#// hit the heading open case above, which unconditionally increments the
-#				#// input pointer.
-#			} elsif ( $found == 'open' ) {
+				#// Note that we do NOT increment the input pointer.
+				#// This is because the closing linebreak could be the opening linebreak of
+				#// another heading. Infinite loops are avoided because the next iteration MUST
+				#// hit the heading open case above, which unconditionally increments the
+				#// input pointer.
+			} elsif ( $found eq 'open' ) {
+				# count opening brace characters
+				$count = strspn( $text, $curChar, $i );
+				# we need to add to stack only if opening brace count is enough for one of the rules
+				if ( $count >= $rule->{'min'} ) {   #if ( $count >= $rule['min'] ) {
+					# Add it to the stack
 
+					$piece = { #array(
+						'open' => $curChar,
+						'close' => $rule->{'end'},
+						'count' => $count,
+						'lineStart' => ($i > 0 && substr($text,$i-1,1) eq "\n"),    #($i > 0 && $text[$i-1] == "\n"),
+					}; # );
+
+					$stack->push( $piece );
+					$accum = $stack->getAccum();
+					$flags = $stack->getFlags();
+					$findEquals = $flags->{findEquals}; # extract( $flags );
+					$findPipe = $flags->{findPipe}; # extract( $flags );
+					$inHeading = $flags->{inHeading}; # extract( $flags );
+				} else {
+					# Add literal brace(s)
+					$$accum .= htmlspecialchars( str_repeat( $curChar, $count ) );
+				}
+				$i += $count;
+			} elsif ( $found eq 'close' ) {
+				$piece = $stack->top;
+				# lets check if there are enough characters for closing brace
+				$maxCount = $piece->count;
+				
+				$count = strspn( $text, $curChar, $i, $maxCount );
+				# check for maximum matching characters (if there are 5 closing
+				# characters, we will probably need only 3 - depending on the rules)
+				$rule = $rules->{$piece->open};   #$rules[$piece->open];
+				if ( $count > $rule->{'max'} ) {   # rule['max'] ) {
+					# The specified maximum exists in the callback array, unless the caller
+					# has made an error
+					$matchingCount = $rule->{'max'};  # $rule['max'];
+				} else {
+					# Count is less than the maximum
+					# Skip any gaps in the callback array to find the true largest match
+					# Need to use array_key_exists not isset because the callback can be null
+					$matchingCount = $count;
+					while ( $matchingCount > 0 && !array_key_exists( $matchingCount, $rule->{'names'} ) ) {  # $rule['names']
+						--$matchingCount;
+					}
+				}
+				if ( $matchingCount <= 0 ) {
+					# No matching element found in callback array
+					# Output a literal closing brace and continue
+					$$accum .= htmlspecialchars( str_repeat( $curChar, $count ) );
+					$i += $count;
+					next; #continue;
+				}
+				$name = $rule->{'names'}->{$matchingCount};   # $rule['names'][$matchingCount];
+				if ( ! defined $name ) {   # if ( $name === null ) {
+					#// No element, just literal text
+					$element = $piece->breakSyntax( $matchingCount ) . str_repeat( $rule->{'end'}, $matchingCount );
+				} else {
+					# Create XML element
+					# Note: $parts is already XML, does not need to be encoded further
+					$parts = $piece->parts;
+					$title = ${$parts->[0]->out};  # $parts[0]->out;
+#					shift @{$parts}; # $parts->[0] = undef; # unset( $parts[0] );
+					
+					# The invocation is at the start of the line if lineStart is set in
+					# the stack, and all opening brackets are used up.
+					if ( $maxCount == $matchingCount && !empty( $piece->lineStart ) ) {
+						$attr = ' lineStart="1"';
+					} else {
+						$attr = '';
+					}
+
+					$element = "<$name$attr>";
+					$element .= "<title>$title</title>";
+					$argIndex = 1;
+					foreach my $part ( @$parts ) {   # foreach ( $parts as $part ) {   
+						if ( isset( $part->eqpos ) ) {
+							$argName = substr( ${$part->out}, 0, $part->eqpos );
+							$argValue = substr( ${$part->out}, $part->eqpos + 1 );
+							$element .= "<part><name>$argName</name>=<value>$argValue</value></part>";
+						} else {
+							$element .= "<part><name index=\"$argIndex\" /><value>".${$part->out}."</value></part>";
+							$argIndex++;
+						}
+					}
+					$element .= "</$name>";
+				}
+
+				# Advance input pointer
+				$i += $matchingCount;
+
+				# Unwind the stack
+				$stack->pop();
+				$accum = $stack->getAccum();
+
+				# Re-add the old stack element if it still has unmatched opening characters remaining
+				if ( $matchingCount < $piece->count ) {
+					$piece->{parts} = [ new WikiDOM::Mediawiki::PreprocessorPart()  ]; # array( new PPDPart );
+					$piece->{count} -= $matchingCount;
+					# do we still qualify for any callback with remaining count?
+					$names = $rules->{$piece->open}->{'names'};
+					$skippedBraces = 0;
+					$enclosingAccum = $accum;
+					while ( $piece->count ) {
+						if ( array_key_exists( $piece->count, $names ) ) {
+							$stack->push( $piece );
+							$accum = $stack->getAccum();
+							last; # break;
+						}
+						--$piece->{count};
+						$skippedBraces ++;
+					}
+					$$enclosingAccum .= str_repeat( $piece->open, $skippedBraces );
+				}
+
+				$flags = $stack->getFlags();
+				$findEquals = $flags->{findEquals}; # extract( $flags );
+				$findPipe = $flags->{findPipe}; # extract( $flags );
+				$inHeading = $flags->{inHeading}; # extract( $flags );
+
+				# Add XML element to the enclosing accumulator
+				$$accum .= $element;
+			} elsif ( $found eq 'pipe' ) {
+				$findEquals = 1; #true; # // shortcut for getFlags()
+				$stack->addPart();
+				$accum = $stack->getAccum();
+				++$i;
+			} elsif ( $found eq 'equals' ) {
+				$findEquals = 0; # false; # // shortcut for getFlags() # FIXME do not understand here
+				$stack->getCurrentPart()->{eqpos} = strlen( $$accum );  # $stack->getCurrentPart()->eqpos = strlen( $accum ); 
+
+				$$accum .= '=';
+				++$i;
 			}
-last if $i>=length($text);
-  last if $i>1000;  # foolproof for now
-  $i++;
-}
+		}
 
+
+		# Output any remaining unclosed brackets
+		foreach  my $piece (@{$stack->stack} ) {
+			$stack->{rootAccum} .= $piece->breakSyntax();
+		}
+		$stack->{rootAccum} .= '</root>';
+#		$xml = $stack->rootAccum;
+
+
+#else {$i++}
+
+
+#last if $i>=length($text);
+#  last if $i>1000;  # foolproof for now
+#  $i++;
+#}
+
+
+print "4444444444444\n";
+#use Data::Dumper;
+#die Dumper $stack;
+
+die $stack->{rootAccum};
 
 # clones of some native php functions to make parser code more similar to original php code
+
+
 
 
 sub htmlspecialchars
@@ -420,4 +624,16 @@ sub min
 sub intval
 {
   return int(shift);
+}
+
+sub array_key_exists
+{
+  my $key = shift;
+  my $hash = shift;
+  return defined $hash->{$key};
+}
+
+sub empty
+{
+  return ! shift;
 }

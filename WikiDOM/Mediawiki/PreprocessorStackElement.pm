@@ -1,9 +1,15 @@
 package WikiDOM::Mediawiki::PreprocessorStackElement;
 
+use strict;
+use warnings;
+
+use WikiDOM::Mediawiki::PreprocessorPart;
+use WikiDOM::Mediawiki::PhpStrings;
+
 sub new
 {
   my $class = shift;
-  my $self = {};
+  my $self = {parts=> [new WikiDOM::Mediawiki::PreprocessorPart()]};
   
   my $params = shift;
 
@@ -13,11 +19,11 @@ sub new
 		'count',            # // Number of opening characters found (number of "=" for heading)
 		'parts',            # // Array of PPDPart objects describing pipe-separated parts.
 		'lineStart',        # // True if the open char appeared at the start of the input line. Not set for headings.
-		'startPos' #?????
+		'startPos', #?????
 );
   foreach my $key (@keys)
   {
-    $self->{$key} = $params->{$key} || undef;
+    $self->{$key} = $params->{$key} if $params->{$key};
     delete $params->{$key};
   }
   die "There are unexpected keys (".join(", ",keys(%$params)).")in params in WikiDOM::Mediawiki::PreprocessorStackElement::new" if keys(%$params);
@@ -36,6 +42,19 @@ sub open
   my $self = shift;
   return $self->{open};
 }
+
+sub parts
+{
+  my $self = shift;
+  return $self->{parts};
+}
+
+sub lineStart
+{
+  my $self = shift;
+  return $self->{lineStart};
+}
+
 
 sub startPos
 {
@@ -72,7 +91,56 @@ sub getCurrentPart
 sub count
 {
   my $self = shift;
-  return int @{$self->{parts}};
+  return $self->{count};
+}
+
+#/**
+# * Get the output string that would result if the close is not found.
+# *
+# * @return string
+# */
+
+sub breakSyntax
+{
+  my $this = shift;
+  my $openingCount = shift || undef;
+  my $s;
+  if ( $this->open eq "\n" )
+  {
+    $s = ${$this->parts->[0]->out};
+  } else {
+    if ( ! defined $openingCount )
+    {
+      $openingCount = $this->count;
+    }
+    $s = str_repeat( $this->open, $openingCount );
+    my $first = 1;
+    foreach my $part ( @{$this->parts} )
+    {
+      if ( $first )
+      {
+         $first = 0;
+      } else
+      {
+        $s .= '|';
+      }
+      $s .= ${$part->out};
+    }
+  }
+  return $s;
+}
+
+sub addPart
+{
+  my $this = shift;
+  my $s = shift || '';
+  push @{$this->parts}, new WikiDOM::Mediawiki::PreprocessorPart($s);
+}
+
+sub  getCurrentPart
+{
+  my $this = shift;
+  return $this->{parts}->[-1];
 }
 
 1;

@@ -11,6 +11,7 @@ strspn
 strlen
 strcspn
 strrev
+str_repeat
 );
 
 
@@ -29,12 +30,12 @@ sub strspn
    {
      my $found = 0;
      my $char = substr($subject, $start+$count,1);
+     
      for (my $i=0; $i<=$#amask;$i++)
      {
        if ($char eq $amask[$i])
        {
          $found = 1;
-         last;
        }
      }
      last unless $found;
@@ -73,5 +74,15 @@ sub strrev
 {
   my @chars = split //, shift;
   return join('',reverse @chars);
+}
+
+# str_repeat — Repeat a string
+
+sub str_repeat
+{
+  my $input = shift;
+  my $multiplier = shift;
+  
+  return $input x $multiplier;
 }
 1;

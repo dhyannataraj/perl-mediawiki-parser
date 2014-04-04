@@ -24,10 +24,14 @@ Second
 multiline
 parapraph
 
-
+=== 333 ===
 and '''italc''' text
 {{test11|test22}}";
 
+#$text="012345";
+
+#$text = '{{context|archaic|lang=fr}}';
+$text = '{{{aaaa}}';
 /*
 if(isset($argv)){
     if(isset($argv[1]) && $argv[1]){

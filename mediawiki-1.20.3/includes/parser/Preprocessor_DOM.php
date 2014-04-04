@@ -312,9 +312,13 @@ class Preprocessor_DOM implements Preprocessor {
 				$literalLength = strcspn( $text, $search, $i );
 				if ( $literalLength > 0 ) {
 					$accum .= htmlspecialchars( substr( $text, $i, $literalLength ) );
-echo "============================\n";
-var_dump($accum);
-echo "============================\n";
+#echo "============================\n";
+#var_dump($accum);
+#echo "-----------------------------\n";
+#var_dump($stack->rootAccum);
+#var_dump($stack);
+
+#echo "============================\n";
 					$i += $literalLength;
 				}
 				if ( $i >= $lengthText ) {
@@ -562,11 +566,15 @@ echo "============================\n";
 					$element = $accum;
 				}
 				// Unwind the stack
+
 				$stack->pop();
 				$accum =& $stack->getAccum();
 				$flags = $stack->getFlags();
 				extract( $flags );
-
+echo "============================\n";
+var_dump($stack->accum);
+var_dump($stack->top);
+echo "============================\n";
 				// Append the result to the enclosing accumulator
 				$accum .= $element;
 				// Note that we do NOT increment the input pointer.
@@ -665,6 +673,10 @@ echo "============================\n";
 				# Advance input pointer
 				$i += $matchingCount;
 
+echo "============================\n";
+var_dump($stack->accum);
+var_dump($stack->top);
+echo "============================\n";
 				# Unwind the stack
 				$stack->pop();
 				$accum =& $stack->getAccum();
@@ -693,6 +705,7 @@ echo "============================\n";
 
 				# Add XML element to the enclosing accumulator
 				$accum .= $element;
+
 			} elseif ( $found == 'pipe' ) {
 				$findEquals = true; // shortcut for getFlags()
 				$stack->addPart();
@@ -777,7 +790,6 @@ class PPDStack {
 			throw new MWException( __METHOD__.': no elements remaining' );
 		}
 		$temp = array_pop( $this->stack );
-
 		if ( count( $this->stack ) ) {
 			$this->top = $this->stack[ count( $this->stack ) - 1 ];
 			$this->accum =& $this->top->getAccum();

@@ -3,7 +3,13 @@
 <?php
 
 #echo strcspn('0123456789===ppp','ppp',10);
-echo intval(3/2);
+# echo intval(3/2);
+
+# $i=3; echo $i>0;
+
+# $l =  array(1,2,3,4,5); unset($l[0]); var_dump($l);
+echo substr( '012345', 2, 10);
+
 /*
 class test_class {
   var $value;
