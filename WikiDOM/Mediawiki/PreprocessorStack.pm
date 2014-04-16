@@ -6,7 +6,7 @@ use strict;
 sub new
 {
   my $class = shift;
-  my $self = {stack => [], top => undef, rootAccum => ''};
+  my $self = {stack => [], top => undef, rootAccum => '', rootObjAccum => []};
   $self->{accum} = \$self->{rootAccum};
   bless $self, $class;
   return $self;
@@ -35,6 +35,32 @@ sub getAccum
   my $self = shift;
   return $self->{accum};
 }
+
+# This function is perl implementation only
+sub getObjAccum
+{
+  my $self = shift;
+  my $top  = $self->top();
+  return $top->getObjAccum if $top;
+  return $self->{rootObjAccum};
+}
+
+# This function is perl implementation only
+sub appendObjAccum
+{
+  my $self = shift;
+  my $value = shift;
+  
+  my $accum = $self->getObjAccum();
+  if (ref $value eq 'ARRAY')
+  {
+    push @{$accum}, @$value;
+  } else
+  {
+    push @{$accum}, $value;
+  }
+}
+
 sub top
 {
   my $self = shift;
@@ -96,6 +122,22 @@ sub getCurrentPart
     return undef;
   } else {
     return $this->{top}->getCurrentPart();
+  }
+}
+
+# this function is perl implementation specific
+sub breakSyntaxObj
+{
+  my $self = shift;
+  my @l = ();
+  while ( @{$self->{stack}} )
+  {
+    my $piece = $self->pop();
+    unshift @l, $piece->breakSyntaxObj();
+  }
+  foreach (@l)
+  {
+    $self->appendObjAccum($_);
   }
 }
 

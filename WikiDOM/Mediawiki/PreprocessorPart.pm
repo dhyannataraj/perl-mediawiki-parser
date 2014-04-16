@@ -10,6 +10,8 @@ sub new
   my $self = {};
   $self->{out}  = shift;
   $self->{out} = '' unless defined $self->{out};
+  $self->{obj_accum} = [];
+  push @{$self->{obj_accum}}, $self->{out} if $self->{out} ne '';  # This perl implementation specific 
   bless $self, $class;
   return $self;
 }
@@ -21,6 +23,13 @@ sub out
 #  alias my $out = $self->{out};
 #  return \$out
    return \$self->{out};
+}
+
+# This sub is in perl implementation only
+sub getObjAccum
+{
+  my $self = shift;
+  return $self->{obj_accum};
 }
 
 sub commentEnd

@@ -23,7 +23,7 @@ sub new
 );
   foreach my $key (@keys)
   {
-    $self->{$key} = $params->{$key} if $params->{$key};
+    $self->{$key} = $params->{$key} if defined $params->{$key};
     delete $params->{$key};
   }
   die "There are unexpected keys (".join(", ",keys(%$params)).")in params in WikiDOM::Mediawiki::PreprocessorStackElement::new" if keys(%$params);
@@ -55,7 +55,6 @@ sub lineStart
   return $self->{lineStart};
 }
 
-
 sub startPos
 {
   my $self = shift;
@@ -68,6 +67,15 @@ sub getAccum
   my $part = $self->{parts}->[-1];
   return $part->out();
 }
+
+# This function is perl implementation only
+sub getObjAccum
+{
+  my $self = shift;
+  my $part = $self->{parts}->[-1];
+  return $part->getObjAccum();
+}
+
 
 sub getFlags
 {
@@ -130,6 +138,41 @@ sub breakSyntax
   return $s;
 }
 
+# this function is perl implementation specific
+sub breakSyntaxObj
+{
+  my $this = shift;
+  my $openingCount = shift || undef;
+  my @l;
+  if ( $this->open eq "\n" )
+  {
+    @l = @{$this->parts->[0]->getObjAccum()};
+  } else {
+    if ( ! defined $openingCount )
+    {
+      $openingCount = $this->count;
+    }
+    @l = (str_repeat( $this->open, $openingCount ));
+    my $first = 1;
+    foreach my $part ( @{$this->parts} )
+    {
+      if ( $first )
+      {
+         $first = 0;
+      } else
+      {
+         push @l, '|';
+      }
+      push @l, @{$part->getObjAccum()};
+    }
+  }
+use Data::Dumper;
+
+print Dumper [@l];
+  return [@l];
+}
+
+
 sub addPart
 {
   my $this = shift;
@@ -137,10 +180,5 @@ sub addPart
   push @{$this->parts}, new WikiDOM::Mediawiki::PreprocessorPart($s);
 }
 
-sub  getCurrentPart
-{
-  my $this = shift;
-  return $this->{parts}->[-1];
-}
 
 1;

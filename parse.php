@@ -31,7 +31,13 @@ and '''italc''' text
 #$text="012345";
 
 #$text = '{{context|archaic|lang=fr}}';
-$text = '{{{aaaa}}';
+# $text = '{{{ {{aaaa}} }}}';
+#$text = '{{aaa|bbb=-{{ccc}}-}}';
+# $text = '{{aaa|bbb}}';
+# $text = '{{ {{aaa}} }}';
+#$text = '===aaa==';
+#$text = '<pre>{{aaa|{{bbb}} }</pre>';
+$text = '===';
 /*
 if(isset($argv)){
     if(isset($argv[1]) && $argv[1]){
