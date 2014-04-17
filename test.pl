@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use utf8;
 
-use Mediawiki::Parser;
+use Mediawiki::Preparser;
 
 
 =cut
@@ -39,9 +39,9 @@ Some paragraph
 =cut
 
 
-#Mediawiki::Parser::parse("====={{TemplateInHeader}}====\n\nAnd some text");
-#Mediawiki::Parser::parse(" {{TemplateWithCurl|aaa={{bbb|{{{ccc}}");
-#Mediawiki::Parser::parse("{{{aaaa}}");
-#Mediawiki::Parser::parse("==={{aaa}}");
-Mediawiki::Parser::parse("=====");
+#Mediawiki::Preparser::parse("====={{TemplateInHeader}}====\n\nAnd some text");
+#Mediawiki::Preparser::parse(" {{TemplateWithCurl|aaa={{bbb|{{{ccc}}");
+#Mediawiki::Preparser::parse("{{{aaaa}}");
+#Mediawiki::Preparser::parse("==={{aaa}}");
+Mediawiki::Preparser::parse("=====");
 

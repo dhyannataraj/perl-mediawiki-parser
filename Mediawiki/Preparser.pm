@@ -1,4 +1,4 @@
-package Mediawiki::Parser;
+package Mediawiki::Preparser;
 
 
 use strict;
@@ -7,9 +7,9 @@ use utf8;
 
 use Storable 'dclone';
 
-use WikiDOM::Mediawiki::PreprocessorStack;
-use WikiDOM::Mediawiki::PreprocessorPart;
-use WikiDOM::Mediawiki::PhpStrings;
+use Mediawiki::Preparser::Stack;
+use Mediawiki::Preparser::Stack::Element::Part;
+use Mediawiki::PhpFunctions;
 
 
 # use Carp::Always;
@@ -45,7 +45,7 @@ my $enableOnlyinclude = 0; # $enableOnlyinclude = false;
 #// Use "A" modifier (anchored) instead of "^", because ^ doesn't work with an offset
 #my $elementsRegex = "~($xmlishRegex)(?:\s|\/>|>)|(!--)~iA";
 
-my $stack = new WikiDOM::Mediawiki::PreprocessorStack();
+my $stack = new Mediawiki::Preparser::Stack();
 my $searchBase = "[{<\n"; #}
 my $revText = strrev( $text );  #// For fast reverse searches
 my $lengthText = strlen( $text );
@@ -318,7 +318,7 @@ if ( $found eq 'line-start' ) {
 					$piece = { # array(
 						'open' => "\n",
 						'close' => "\n",
-						'parts' => [ new WikiDOM::Mediawiki::PreprocessorPart('=' x $count)  ], # array( new PPDPart( str_repeat( '=', $count ) ) ),
+						'parts' => [ new Mediawiki::Preparser::Stack::Element::Part('=' x $count)  ], # array( new PPDPart( str_repeat( '=', $count ) ) ),
 						'startPos' => $i,
 						'count' => $count }; # );
 					$stack->push( $piece );
@@ -489,7 +489,7 @@ if ( $found eq 'line-start' ) {
 				$accum = $stack->getAccum();
 				# Re-add the old stack element if it still has unmatched opening characters remaining
 				if ( $matchingCount < $piece->count ) {
-					$piece->{parts} = [ new WikiDOM::Mediawiki::PreprocessorPart()  ]; # array( new PPDPart );
+					$piece->{parts} = [ new Mediawiki::Preparser::Stack::Element::Part()  ]; # array( new PPDPart );
 					$piece->{count} -= $matchingCount;
 					# do we still qualify for any callback with remaining count?
 					$names = $rules->{$piece->open}->{'names'};

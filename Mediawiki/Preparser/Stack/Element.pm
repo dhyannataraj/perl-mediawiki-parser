@@ -1,0 +1,180 @@
+package Mediawiki::Preparser::Stack::Element;
+
+use strict;
+use warnings;
+
+use Mediawiki::Preparser::Stack::Element::Part;
+use Mediawiki::PhpFunctions;
+
+sub new
+{
+  my $class = shift;
+  my $self = {parts=> [new Mediawiki::Preparser::Stack::Element::Part()]};
+  
+  my $params = shift;
+
+  my @keys = (
+  		'open',		   # // Opening character (\n for heading)
+		'close',     	   # // Matching closing character
+		'count',            # // Number of opening characters found (number of "=" for heading)
+		'parts',            # // Array of PPDPart objects describing pipe-separated parts.
+		'lineStart',        # // True if the open char appeared at the start of the input line. Not set for headings.
+		'startPos', #?????
+);
+  foreach my $key (@keys)
+  {
+    $self->{$key} = $params->{$key} if defined $params->{$key};
+    delete $params->{$key};
+  }
+  die "There are unexpected keys (".join(", ",keys(%$params)).")in params in Mediawiki::Preparser::Stack::Element::new" if keys(%$params);
+  bless $self, $class;
+  return $self;
+}
+
+sub close
+{
+  my $self = shift;
+  return $self->{close};
+}
+
+sub open
+{
+  my $self = shift;
+  return $self->{open};
+}
+
+sub parts
+{
+  my $self = shift;
+  return $self->{parts};
+}
+
+sub lineStart
+{
+  my $self = shift;
+  return $self->{lineStart};
+}
+
+sub startPos
+{
+  my $self = shift;
+  return $self->{startPos};
+}
+
+sub getAccum
+{
+  my $self = shift;
+  my $part = $self->{parts}->[-1];
+  return $part->out();
+}
+
+# This function is perl implementation only
+sub getObjAccum
+{
+  my $self = shift;
+  my $part = $self->{parts}->[-1];
+  return $part->getObjAccum();
+}
+
+
+sub getFlags
+{
+  my $self = shift;
+  
+  my $partCount = int (@{$self->{parts}} );
+  my $findPipe = $self->{open} ne "\n" && $self->{open} ne '[';
+  return {
+            'findPipe' => $findPipe,
+            'findEquals' => $findPipe && $partCount > 1 && ! defined( $self->{parts}->[-1]->{eqpos} ), # FIXME eqpos not implemented
+            'inHeading' => $self->{open} eq "\n",
+         }
+}
+
+sub getCurrentPart
+{
+  my $self = shift;
+  return $self->{parts}->[-1];
+}
+
+sub count
+{
+  my $self = shift;
+  return $self->{count};
+}
+
+#/**
+# * Get the output string that would result if the close is not found.
+# *
+# * @return string
+# */
+
+sub breakSyntax
+{
+  my $this = shift;
+  my $openingCount = shift || undef;
+  my $s;
+  if ( $this->open eq "\n" )
+  {
+    $s = ${$this->parts->[0]->out};
+  } else {
+    if ( ! defined $openingCount )
+    {
+      $openingCount = $this->count;
+    }
+    $s = str_repeat( $this->open, $openingCount );
+    my $first = 1;
+    foreach my $part ( @{$this->parts} )
+    {
+      if ( $first )
+      {
+         $first = 0;
+      } else
+      {
+        $s .= '|';
+      }
+      $s .= ${$part->out};
+    }
+  }
+  return $s;
+}
+
+# this function is perl implementation specific
+sub breakSyntaxObj
+{
+  my $this = shift;
+  my $openingCount = shift || undef;
+  my @l;
+  if ( $this->open eq "\n" )
+  {
+    @l = @{$this->parts->[0]->getObjAccum()};
+  } else {
+    if ( ! defined $openingCount )
+    {
+      $openingCount = $this->count;
+    }
+    @l = (str_repeat( $this->open, $openingCount ));
+    my $first = 1;
+    foreach my $part ( @{$this->parts} )
+    {
+      if ( $first )
+      {
+         $first = 0;
+      } else
+      {
+         push @l, '|';
+      }
+      push @l, @{$part->getObjAccum()};
+    }
+  }
+}
+
+
+sub addPart
+{
+  my $this = shift;
+  my $s = shift || '';
+  push @{$this->parts}, new Mediawiki::Preparser::Stack::Element::Part($s);
+}
+
+
+1;
