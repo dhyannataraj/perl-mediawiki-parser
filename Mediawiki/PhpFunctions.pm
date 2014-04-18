@@ -12,6 +12,12 @@ strlen
 strcspn
 strrev
 str_repeat
+htmlspecialchars
+isset
+empty
+min
+intval
+array_key_exists
 );
 
 
@@ -85,4 +91,67 @@ sub str_repeat
   
   return $input x $multiplier;
 }
+
+sub htmlspecialchars
+{
+  my $string = shift;
+  warn 'htmlspecialchars does not suppport any additional parametrs, exept first one.' if @_;
+  $string =~ s/&/&amp;/gs;
+  $string =~ s/"/&quot;/gs; #"
+#  $string =~ s/'/&#039;/gs; #" #should not do it unless flag ENT_QUOTES is set, but flags are not supported, so do nothing
+  $string =~ s/</&lt;/gs; 
+  $string =~ s/>/&gt;/gs; 
+  return $string;
+}
+
+sub isset
+{
+  return defined shift;
+}
+
+# empty
+#
+# Returns FALSE if var exists and has a non-empty, non-zero value. Otherwise returns TRUE.
+#
+# The following things are considered to be empty:
+#
+# "" (an empty string)
+# 0 (0 as an integer)
+# 0.0 (0 as a float)
+# "0" (0 as a string)
+# NULL
+# FALSE
+# array() (an empty array)
+# $var; (a variable declared, but without a value)
+# http://php.net/manual/en/function.empty.php
+sub empty
+{
+  return ! shift;
+}
+
+
+sub min
+{
+  my @l = @_;
+  my $min = $l[0];
+  foreach my $el (@l)
+  {
+    $min = $el if $el<$min;
+  }
+  return $min;
+}
+
+sub intval
+{
+  return int(shift);
+}
+
+sub array_key_exists
+{
+  my $key = shift;
+  my $hash = shift;
+  return defined $hash->{$key};
+}
+
+
 1;

@@ -11,7 +11,7 @@ use warnings;
 
 use lib "../";
 
-use WikiDOM::Mediawiki::PhpStrings;
+use Mediawiki::PhpFunctions;
 
 use Test::More 'no_plan';
 

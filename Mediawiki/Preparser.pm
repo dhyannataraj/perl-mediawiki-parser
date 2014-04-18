@@ -80,7 +80,7 @@ my $wsLength;
 my $searchStart;
 my $equalsLength;
 my $element;
-my $element_obj; #this war is perl implementation only;
+my $element_obj; #this var is perl implementation only;
 my $maxCount;
 my $matchingCount;
 my $name;
@@ -543,8 +543,8 @@ die $stack->{rootAccum};
 }
 
 
-# this function is about prepearing an element piece for ojective accum
-# this is perl implementation functionality only; in php implementation there is 
+# this function is about prepearing an element piece for oject-oriented accum
+# this functionality exists in perl implementation only; in php implementation there is 
 # plaintext accum only
 sub _prepare_piece
 {
@@ -577,51 +577,6 @@ sub _prepare_piece
     delete $part->{out} ;
   }
   return $piece;
-}
-
-# clones of some native php functions to make parser code more similar to original php code
-sub htmlspecialchars
-{
-  my $string = shift;
-  warn 'htmlspecialchars does not suppport any additional parametrs, exept first one.' unless @_;
-  $string =~ s/&/&amp;/gs;
-  $string =~ s/"/&quot;/gs; #"
-#  $string =~ s/'/&#039;/gs; #" #should not do it unless flag ENT_QUOTES is set, but flags are not supported, so do nothing
-  $string =~ s/</&lt;/gs; 
-  $string =~ s/>/&gt;/gs; 
-  return $string;
-}
-
-sub isset
-{
-  return defined shift;
-}
-
-sub min
-{
-  my @l = @_;
-  my $min = $l[0];
-  foreach my $el (@l)
-  {
-    $min = $el if $el<$min;
-  }
-  return $min;
-}
-sub intval
-{
-  return int(shift);
-}
-
-sub array_key_exists
-{
-  my $key = shift;
-  my $hash = shift;
-  return defined $hash->{$key};
-}
-
-sub empty
-{
-  return ! shift;
 }
 
 1;
