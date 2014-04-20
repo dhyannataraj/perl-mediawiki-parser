@@ -5,4 +5,14 @@ Since perl and php have some lexical similarity, I would
 take code from current php includes/parser/Preprocessor_DOM.php
 fix the lexical diffirence and make it properly work.
 
-Current project status: does not work at all, initial efforts are taken
+Current project status: it work as a proof of concept.
+
+Preprocessor that splits text for sections templates and tplargs 
+is partly implemented.
+
+In future I would do parsiong of html tags in Preprocessor code, and 
+parsing of text formatting. 
+
+Also I would add event based parsing, so it cam be used in the same 
+way as HTML::Parser
+

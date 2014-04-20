@@ -43,5 +43,6 @@ Some paragraph
 #Mediawiki::Preparser::parse(" {{TemplateWithCurl|aaa={{bbb|{{{ccc}}");
 #Mediawiki::Preparser::parse("{{{aaaa}}");
 #Mediawiki::Preparser::parse("==={{aaa}}");
-Mediawiki::Preparser::parse("=====");
-
+#print Mediawiki::Preparser::parse("=====");
+#print Mediawiki::Preparser::parse("{{aaa|bbb=ccc}}");
+print Mediawiki::Preparser::parse("{{aaa|==bbb}}");

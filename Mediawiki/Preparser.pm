@@ -18,9 +18,8 @@ sub parse
 {
 
 my $text = shift;
-
-my $flags = shift || 0;
-
+my $options = shift || {result=>'xml'};
+my $flags;
 
 my $rules = { "{" => { 'end' => '}',                        # } {  -- for stupid highlighter
                       'names' => { 2 => 'template',
@@ -200,6 +199,7 @@ while ()
 						// the overall start. That's not how Sanitizer::removeHTMLcomments() did it, but
 						// it's a possible beneficial b/c break.
 						if ( $wsStart > 0 && substr( $text, $wsStart - 1, 1 ) == "\n"
+				
 							&& substr( $text, $wsEnd + 1, 1 ) == "\n" )
 						{
 							$startPos = $wsStart;
@@ -523,7 +523,7 @@ if ( $found eq 'line-start' ) {
 				$findEquals = 0; # false; # // shortcut for getFlags() # FIXME do not understand here
 				$stack->getCurrentPart()->{eqpos} = strlen( $$accum );  # $stack->getCurrentPart()->eqpos = strlen( $accum ); 
 				$$accum .= '=';
-				$stack->appendObjAccum('='); #perl only
+				$stack->appendObjAccum('=',{special_equal=>1}); #perl only
 				++$i;
 			}
 		}
@@ -535,11 +535,9 @@ if ( $found eq 'line-start' ) {
 		$stack->{rootAccum} .= '</root>';
 #		$xml = $stack->rootAccum;
 
-print $stack->{rootAccum},"\n";
-use Data::Dumper;
-die Dumper $stack->{rootObjAccum};
-
-die $stack->{rootAccum};
+return $stack->{rootObjAccum} if $options->{result} eq 'obj';
+return $stack->{rootAccum} if $options->{result} eq 'xml';
+die "Unknown result option: ".$options->{result};
 }
 
 
@@ -575,6 +573,7 @@ sub _prepare_piece
   foreach my $part (@{$piece->{parts}})
   {
     delete $part->{out} ;
+    delete $part->{eqpos} ;
   }
   return $piece;
 }

@@ -50,14 +50,33 @@ sub appendObjAccum
 {
   my $self = shift;
   my $value = shift;
+  my $opt = shift || {};
   
+  my $part = $self->getCurrentPart();
+  
+  if ($value eq '=' && $opt->{special_equal})
+  {
+    $part->{eqindex} = @{$part->{obj_accum}}
+  }
   my $accum = $self->getObjAccum();
   if (ref $value eq 'ARRAY')
   {
-    push @{$accum}, @$value;
+    foreach (@$value)
+    {
+      $self->appendObjAccum($_);
+    }
   } else
   {
-    push @{$accum}, $value;
+    if ( @{$accum} && ref($accum->[-1]) eq '' && ref($value) eq '' 
+         && ! $opt->{special_equal} && ( ! defined $part->{eqindex} || $part->{eqindex} != int(@$accum)-1) # we are not dealing whith spesial "=" case
+       )
+    {
+      #both last element and the value are texts, so we join them
+      $accum->[-1].=$value;
+    } else
+    {
+      push @{$accum}, $value;
+    }
   }
 }
 

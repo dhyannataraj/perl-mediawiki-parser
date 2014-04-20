@@ -37,7 +37,7 @@ and '''italc''' text
 # $text = '{{ {{aaa}} }}';
 #$text = '===aaa==';
 #$text = '<pre>{{aaa|{{bbb}} }</pre>';
-$text = '===';
+$text = '{{aaa|==bbb}}';
 /*
 if(isset($argv)){
     if(isset($argv[1]) && $argv[1]){
