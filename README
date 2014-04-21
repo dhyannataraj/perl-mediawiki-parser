@@ -3,7 +3,7 @@ Mediawiki parser.
 
 Since perl and php have some lexical similarity, I would
 take code from current php includes/parser/Preprocessor_DOM.php
-fix the lexical diffirence and make it properly work.
+fix the lexical diffirence and make it work properly.
 
 Current project status: it work as a proof of concept.
 

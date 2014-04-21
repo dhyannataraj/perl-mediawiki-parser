@@ -6,6 +6,7 @@ use utf8;
 
 use Mediawiki::Preparser;
 
+use Carp::Always;
 
 =cut
 my $text = '== Header ==
@@ -45,4 +46,8 @@ Some paragraph
 #Mediawiki::Preparser::parse("==={{aaa}}");
 #print Mediawiki::Preparser::parse("=====");
 #print Mediawiki::Preparser::parse("{{aaa|bbb=ccc}}");
-print Mediawiki::Preparser::parse("{{aaa|==bbb}}");
+#print Mediawiki::Preparser::parse("{{aaa|==bbb}}");
+
+use Data::Dumper;
+print Dumper Mediawiki::Preparser::parse("{{unterminated|template {{good template}}\n==And then a header==",{result=>'obj'});
+

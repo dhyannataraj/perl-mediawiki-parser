@@ -93,6 +93,24 @@ my $tests =
     xml => '<root><h level="2" i="1">====But this====is header!==</h></root>',
     obj => [_header(1,2,0,'==But this====is header!')]
   },
+  {
+    name => 'header_13',
+    src => "=={{unterminaed|template|inside|a|header==",
+    xml => '<root>=={{unterminaed|template|inside|a|header==</root>',
+    obj => ["=={{unterminaed|template|inside|a|header=="]
+  },
+  {
+    name => 'header_14',
+    src => "==text {{good|template}} text {{unterminaed|template|inside|a|header==", # }}
+    xml => '<root>==text <template><title>good</title><part><name index="1" /><value>template</value></part></template> text {{unterminaed|template|inside|a|header==</root>', # }}
+    obj => ["==text ",_template('good',['template']) ," text {{unterminaed|template|inside|a|header=="]  # }}
+  },
+  {
+    name => 'header_15',
+    src => "{{unterminated|template\n==And then a header==", # }}
+    xml => '<root>{{unterminated|template'."\n".'<h level="2" i="1">==And then a header==</h></root>', # }}
+    obj => ["{{unterminated|template\n",_header(1,2,24,'And then a header')] # }}
+  },
 
 
   {

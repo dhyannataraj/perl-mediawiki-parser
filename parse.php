@@ -38,6 +38,11 @@ and '''italc''' text
 #$text = '===aaa==';
 #$text = '<pre>{{aaa|{{bbb}} }</pre>';
 $text = '{{aaa|==bbb}}';
+$text = '===={{aaa====\n';
+
+$text = '{{aaa\n==aaa==\n';
+
+$text = '{{aaa\n==aaa==\n}}';
 /*
 if(isset($argv)){
     if(isset($argv[1]) && $argv[1]){

@@ -449,6 +449,7 @@ if ( $found eq 'line-start' ) {
 				$name = $rule->{'names'}->{$matchingCount};   # $rule['names'][$matchingCount];
 				if ( ! defined $name ) {   # if ( $name === null ) {
 					#// No element, just literal text
+die "please reoprt the case when you get this!";
 					$element = $piece->breakSyntax( $matchingCount ) . str_repeat( $rule->{'end'}, $matchingCount );
 					$element_obj = $element;
 				} else {

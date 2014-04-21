@@ -166,6 +166,7 @@ sub breakSyntaxObj
       push @l, @{$part->getObjAccum()};
     }
   }
+  return @l;
 }
 
 
