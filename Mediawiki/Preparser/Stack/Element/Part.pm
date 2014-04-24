@@ -8,10 +8,11 @@ sub new
 {
   my $class = shift;
   my $self = {};
-  $self->{out}  = shift;
-  $self->{out} = '' unless defined $self->{out};
+  my $data = shift;
+
+  $self->{out} = $data // '';
   $self->{obj_accum} = [];
-  push @{$self->{obj_accum}}, $self->{out} if $self->{out} ne '';  # This perl implementation specific 
+  push @{$self->{obj_accum}}, $data if defined $data;  # This perl implementation specific 
   bless $self, $class;
   return $self;
 }

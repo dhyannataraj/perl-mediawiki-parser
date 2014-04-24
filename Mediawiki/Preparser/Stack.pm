@@ -51,9 +51,9 @@ sub appendObjAccum
   my $self = shift;
   my $value = shift;
   my $opt = shift || {};
-  
+
   my $part = $self->getCurrentPart();
-  
+
   if ($value eq '=' && $opt->{special_equal})
   {
     $part->{eqindex} = @{$part->{obj_accum}}
@@ -128,7 +128,7 @@ sub pop
 sub addPart
 {
   my $this = shift;
-  my $s = shift || '';
+  my $s = shift;
   $this->top->addPart( $s );
   $this->{accum} = $this->{top}->getAccum();
 }

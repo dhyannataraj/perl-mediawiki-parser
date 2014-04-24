@@ -506,7 +506,7 @@ die "please reoprt the case when you get this!";
 						$skippedBraces ++;
 					}
 					$$enclosingAccum .= str_repeat( $piece->open, $skippedBraces );
-					$element_obj = [str_repeat( $piece->open, $skippedBraces ), $element_obj];
+					$element_obj = [str_repeat( $piece->open, $skippedBraces ), $element_obj] if $skippedBraces > 0;
 				}
 				$flags = $stack->getFlags();
 				$findEquals = $flags->{findEquals}; # extract( $flags );
@@ -514,7 +514,7 @@ die "please reoprt the case when you get this!";
 				$inHeading = $flags->{inHeading}; # extract( $flags );
 				# Add XML element to the enclosing accumulator
 				$$accum .= $element;
-				$stack->appendObjAccum($element_obj); # perl implementation only
+				$stack->appendObjAccum($element_obj); # perl implementation\ only
 			} elsif ( $found eq 'pipe' ) {
 				$findEquals = 1; #true; # // shortcut for getFlags()
 				$stack->addPart();

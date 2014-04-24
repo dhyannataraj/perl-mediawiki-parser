@@ -173,7 +173,7 @@ sub breakSyntaxObj
 sub addPart
 {
   my $this = shift;
-  my $s = shift || '';
+  my $s = shift;
   push @{$this->parts}, new Mediawiki::Preparser::Stack::Element::Part($s);
 }
 

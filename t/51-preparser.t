@@ -118,17 +118,81 @@ my $tests =
     src => "{{template|param1|param2=value2}}",
     xml => '<root><template><title>template</title><part><name index="1" /><value>param1</value></part><part><name>param2</name>=<value>value2</value></part></template></root>',
     obj => [_template('template',['param1',['param2','=','value2']])]
-  }
-  
-#=cut
-#  {
-#    name => 'template_1',
-#    src => "{{template|param1|aaa{{bbb}}=ccc}}",
-#    xml => '<root><h level="4" i="1">====Header====</h>'."\nSome Lines</root>",
-#    obj => [_header(1,4,0,'Header'),"\n","Some Lines"]
-#  },
-#=cut
+  },
+  {
+    name => 'template_2',
+    src => "{{template|{{inside|template}}}}",
+    xml => '<root><template><title>template</title><part><name index="1" /><value><template><title>inside</title><part><name index="1" /><value>template</value></part></template></value></part></template></root>',
+    obj => [_template('template',[_template('inside',['template'])])]
+  },
+  {
+    name => 'template_3',
+    src => "Do not mix {{{template}} with tplarg",
+    xml => '<root>Do not mix {<template><title>template</title></template> with tplarg</root>',
+    obj => ["Do not mix {",_template("template")," with tplarg"]
+  },
+  {
+    name => 'template_4',
+    src => "{{template|param=value_with_second=equal}}",
+    xml => '<root><template><title>template</title><part><name>param</name>=<value>value_with_second=equal</value></part></template></root>',
+    obj => [_template("template",[['param','=','value_with_second=equal']])]
+  },
+  {
+    name => 'template_5',
+    src => "{{template|=param_name_is_empty}}",
+    xml => '<root><template><title>template</title><part><name></name>=<value>param_name_is_empty</value></part></template></root>',
+    obj => [_template("template",[['=','param_name_is_empty']])]
+  },
+  {
+    name => 'template_6',
+    src => "{{unclosed|template",
+    xml => '<root>{{unclosed|template</root>',
+    obj => ["{{unclosed|template"]
+  },
 
+  {
+    name => 'template_7',
+    src => "{{double {{unclosed|template",
+    xml => '<root>{{double {{unclosed|template</root>',
+    obj => ["{{double {{unclosed|template"]
+  },
+
+  {
+    name => 'template_8',
+    src => "{{unclosed|template|{{with_good_template_inside}}",
+    xml => '<root>{{unclosed|template|<template><title>with_good_template_inside</title></template></root>',
+    obj => ["{{unclosed|template|",_template('with_good_template_inside')]
+  },
+  {
+    name => 'template_9',
+    src => "{{{{{tplarg_inside_template}}}}}",
+    xml => '<root><template><title><tplarg><title>tplarg_inside_template</title></tplarg></title></template></root>',
+    obj => [_template(_tplarg('tplarg_inside_template'))]
+  },
+  {
+    # this test really confuses me.
+    name => 'template_10',
+    src => "{{Inside_a_template\n===Header is still a header O_o===\n}}",
+    xml => "<root><template><title>Inside_a_template\n".'<h level="3" i="1">===Header is still a header O_o===</h>'."\n</title></template></root>",
+    obj => [_template(["Inside_a_template\n",_header(1,3,20,'Header is still a header O_o'),"\n"])]
+  },
+
+  {
+    name => 'tplarg_1',
+    src => "{{{tplarg}}}",
+    xml => '<root><tplarg><title>tplarg</title></tplarg></root>',
+    obj => [_tplarg('tplarg')]
+  },
+
+  {
+    name => 'tplarg_2',
+    src => "{{{{{{tplarg}}}}}}",
+    xml => '<root><tplarg><title><tplarg><title>tplarg</title></tplarg></title></tplarg></root>',
+    obj => [_tplarg(_tplarg('tplarg'))]
+  },
+
+# here would be a good idea to take all template tests and clone them as tplarg tests (since it is processed in almost the same way)
+# but I am too lazy to do that for now, and since tplarg is processed with the same code as template, template tests will do
 
 ];
 
@@ -202,5 +266,13 @@ sub _template
     }
     push @{$res->{parts}}, $part;
   }
+  return $res;
+}
+
+sub _tplarg
+{
+  my @params = @_;
+  my $res = _template(@params);
+  $res->{'count'} = 3;
   return $res;
 }

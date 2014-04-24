@@ -49,5 +49,5 @@ Some paragraph
 #print Mediawiki::Preparser::parse("{{aaa|==bbb}}");
 
 use Data::Dumper;
-print Dumper Mediawiki::Preparser::parse("{{unterminated|template {{good template}}\n==And then a header==",{result=>'obj'});
+print Dumper Mediawiki::Preparser::parse("{{{{{aaa}}}}}",{result=>'obj'});
 

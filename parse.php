@@ -43,6 +43,8 @@ $text = '===={{aaa====\n';
 $text = '{{aaa\n==aaa==\n';
 
 $text = '{{aaa\n==aaa==\n}}';
+$text = '{{{{{tplarg_inside_template}}}}}';
+
 /*
 if(isset($argv)){
     if(isset($argv[1]) && $argv[1]){
