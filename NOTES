@@ -1,3 +1,6 @@
 
 - While testing parser, one shoud always test a line with equals only "================", 
 this is a special case, that has it's own code.
+
+
+$xmlishRegex = 'pre|nowiki|gallery|rss|includeonly|noinclude|/noinclude|onlyinclude|/onlyinclude'

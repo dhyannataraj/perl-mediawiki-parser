@@ -44,6 +44,9 @@ $text = '{{aaa\n==aaa==\n';
 
 $text = '{{aaa\n==aaa==\n}}';
 $text = '{{{{{tplarg_inside_template}}}}}';
+$text = 'a<!-- -->b';
+
+$text = 'qqqq<pre/>';
 
 /*
 if(isset($argv)){

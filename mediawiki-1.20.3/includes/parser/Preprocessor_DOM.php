@@ -239,6 +239,8 @@ class Preprocessor_DOM implements Preprocessor {
 			$xmlishElements[] = 'includeonly';
 		}
 		$xmlishRegex = implode( '|', array_merge( $xmlishElements, $ignoredTags ) );
+#test only
+$xmlishRegex = 'pre|nowiki|gallery|rss|includeonly|noinclude|/noinclude|onlyinclude|/onlyinclude';
 
 		// Use "A" modifier (anchored) instead of "^", because ^ doesn't work with an offset
 		$elementsRegex = "~($xmlishRegex)(?:\s|\/>|>)|(!--)~iA";

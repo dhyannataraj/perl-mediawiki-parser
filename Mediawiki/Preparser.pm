@@ -36,13 +36,22 @@ my $rules = { "{" => { 'end' => '}',                        # } {  -- for stupid
                      }
            };
 
-my $enableOnlyinclude = 0; # $enableOnlyinclude = false;
+my $enableOnlyinclude = 1; # $enableOnlyinclude = false;
+# FIXME we should get it through some kind of options or something
 
 
 #my $xmlishRegex = implode( '|', array_merge( $xmlishElements, $ignoredTags ) );
 
 #// Use "A" modifier (anchored) instead of "^", because ^ doesn't work with an offset
 #my $elementsRegex = "~($xmlishRegex)(?:\s|\/>|>)|(!--)~iA";
+
+my $ignoredTags = [ 'noinclude', '/noinclude', 'onlyinclude', '/onlyinclude' ]; # this list should be somehow confugurable, as it depends on how the atricle is used: is it is icluded in other article or not
+
+my $xmlishRegex = 'pre|nowiki|gallery|rss|includeonly|noinclude|/noinclude|onlyinclude|/onlyinclude';
+		#// Use "A" modifier (anchored) instead of "^", because ^ doesn't work with an offset
+#my		$elementsRegex = '~($xmlishRegex)(?:\s|\/>|>)|(!--)~iA';
+my		$elementsRegex = '~^('.$xmlishRegex.')(?:\s|\/>|>)|(!--)~i';
+
 
 my $stack = new Mediawiki::Preparser::Stack();
 my $searchBase = "[{<\n"; #}
@@ -61,7 +70,6 @@ my $inHeading = 0;                 # True if $i is inside a possible heading
 my $findOnlyinclude = $enableOnlyinclude; # True to ignore all input up to the next <onlyinclude>
 my $fakeLineStart = 1;     # Do a line-start run without outputting an LF character
 
-
 # These variables are not defined in original php code, just used in some places.  
 # But since in php all variables are function-wide wisible, and we are using strinct, we should strictly define them here
 my $found = undef;
@@ -71,6 +79,18 @@ my $currentClosing;
 my $literalLength;
 my $rule;
 my $matches;
+my $endPos;
+my $inner;
+my $wsStart;
+my $wsEnd;
+my $startPos;
+my $lowerName;
+my $attrStart;
+my $tagEndPos;
+my $noMoreGT;
+my $tagStartPos;
+my $attrEnd;
+my $close;
 #
 my $count;
 my $piece;
@@ -93,7 +113,6 @@ my $argValue;
 my $names;
 my $skippedBraces;
 my $enclosingAccum;
-
 while ()
 {
 			if ( $fakeLineStart ) {
@@ -159,123 +178,129 @@ while ()
 					}
 				}
 			}
-=cut
-			if ( $found == 'angle' ) {
-				$matches = false;
-				// Handle </onlyinclude>
-				if ( $enableOnlyinclude && substr( $text, $i, strlen( '</onlyinclude>' ) ) == '</onlyinclude>' ) {
-					$findOnlyinclude = true;
-					continue;
+			if ( $found eq 'angle' ) {
+				$matches = []; #false;
+				# // Handle </onlyinclude>
+				if ( $enableOnlyinclude && substr( $text, $i, strlen( '</onlyinclude>' ) ) eq '</onlyinclude>' ) {
+					$findOnlyinclude = 1; # true;
+					next; # continue;
 				}
-
-				// Determine element name
+				#// Determine element name
 				if ( !preg_match( $elementsRegex, $text, $matches, 0, $i + 1 ) ) {
-					// Element name missing or not listed
-					$accum .= '&lt;';
+					#// Element name missing or not listed
+					$$accum .= '&lt;'; # $accum .= '&lt;';
+					$stack->appendObjAccum('&lt;'); # perl implementation only
 					++$i;
-					continue;
+					next; # continue;
 				}
-				// Handle comments
-				if ( isset( $matches[2] ) && $matches[2] == '!--' ) {
-					// To avoid leaving blank lines, when a comment is both preceded
-					// and followed by a newline (ignoring spaces), trim leading and
-					// trailing spaces and one of the newlines.
-
-					// Find the end
+				#// Handle comments
+				if ( isset( $matches->[2] ) && $matches->[2] eq '!--' ) {
+					#// To avoid leaving blank lines, when a comment is both preceded
+					#// and followed by a newline (ignoring spaces), trim leading and
+					#// trailing spaces and one of the newlines.
+					#// Find the end
 					$endPos = strpos( $text, '-->', $i + 4 );
-					if ( $endPos === false ) {
-						// Unclosed comment in input, runs to end
+					if ( ! defined $endPos ) {  # $endPos === false
+						#// Unclosed comment in input, runs to end
 						$inner = substr( $text, $i );
-						$accum .= '<comment>' . htmlspecialchars( $inner ) . '</comment>';
+						$$accum .= '<comment>' . htmlspecialchars( $inner ) . '</comment>';
+# FIXME тут объектную реализацию сделать
 						$i = $lengthText;
 					} else {
-						// Search backwards for leading whitespace
+						#// Search backwards for leading whitespace
 						$wsStart = $i ? ( $i - strspn( $revText, ' ', $lengthText - $i ) ) : 0;
-						// Search forwards for trailing whitespace
-						// $wsEnd will be the position of the last space (or the '>' if there's none)
+						#// Search forwards for trailing whitespace
+						#// $wsEnd will be the position of the last space (or the '>' if there's none)
 						$wsEnd = $endPos + 2 + strspn( $text, ' ', $endPos + 3 );
-						// Eat the line if possible
-						// TODO: This could theoretically be done if $wsStart == 0, i.e. for comments at
-						// the overall start. That's not how Sanitizer::removeHTMLcomments() did it, but
-						// it's a possible beneficial b/c break.
-						if ( $wsStart > 0 && substr( $text, $wsStart - 1, 1 ) == "\n"
-				
-							&& substr( $text, $wsEnd + 1, 1 ) == "\n" )
+						#// Eat the line if possible
+						#// TODO: This could theoretically be done if $wsStart == 0, i.e. for comments at
+						#// the overall start. That's not how Sanitizer::removeHTMLcomments() did it, but
+						#// it's a possible beneficial b/c break.
+						if ( $wsStart > 0 && substr( $text, $wsStart - 1, 1 ) eq "\n"
+							&& substr( $text, $wsEnd + 1, 1 ) eq "\n" )
 						{
 							$startPos = $wsStart;
 							$endPos = $wsEnd + 1;
-							// Remove leading whitespace from the end of the accumulator
-							// Sanity check first though
+							#// Remove leading whitespace from the end of the accumulator
+							#// Sanity check first though
 							$wsLength = $i - $wsStart;
-							if ( $wsLength > 0 && substr( $accum, -$wsLength ) === str_repeat( ' ', $wsLength ) ) {
-								$accum = substr( $accum, 0, -$wsLength );
+							if ( $wsLength > 0 && substr( $accum, -$wsLength ) eq str_repeat( ' ', $wsLength ) ) { # === -> eq
+								$$accum = substr( $accum, 0, -$wsLength );
+#FIXME сделать что-то с объектной реализацией
 							}
-							// Do a line-start run next time to look for headings after the comment
-							$fakeLineStart = true;
+							#// Do a line-start run next time to look for headings after the comment
+							$fakeLineStart = 1; # true -> 1
 						} else {
-							// No line to eat, just take the comment itself
+							#// No line to eat, just take the comment itself
 							$startPos = $i;
 							$endPos += 2;
 						}
-
 						if ( $stack->top ) {
 							$part = $stack->top->getCurrentPart();
 							if ( ! (isset( $part->commentEnd ) && $part->commentEnd == $wsStart - 1 )) {
-								$part->visualEnd = $wsStart;
+								$part->{visualEnd} = $wsStart;
 							}
-							// Else comments abutting, no change in visual end
-							$part->commentEnd = $endPos;
+							# // Else comments abutting, no change in visual end
+							$part->{commentEnd} = $endPos;
 						}
 						$i = $endPos + 1;
 						$inner = substr( $text, $startPos, $endPos - $startPos + 1 );
-						$accum .= '<comment>' . htmlspecialchars( $inner ) . '</comment>';
+						$$accum .= '<comment>' . htmlspecialchars( $inner ) . '</comment>';
+#FIXME реализовать тут объектную часть
 					}
-					continue;
+					next; # continue; --> next;
 				}
-				$name = $matches[1];
+				$name = $matches->[1];  #   $matches[1] --> $matches->[1]
 				$lowerName = strtolower( $name );
 				$attrStart = $i + strlen( $name ) + 1;
+print "-\n";
 
-				// Find end of tag
-				$tagEndPos = $noMoreGT ? false : strpos( $text, '>', $attrStart );
-				if ( $tagEndPos === false ) {
-					// Infinite backtrack
-					// Disable tag search to prevent worst-case O(N^2) performance
-					$noMoreGT = true;
-					$accum .= '&lt;';
+				#// Find end of tag
+				$tagEndPos = $noMoreGT ? undef : strpos( $text, '>', $attrStart );
+				if ( ! defined $tagEndPos  ) {  # $tagEndPos === false --> ! defined $tagEndPos
+					#// Infinite backtrack
+					#// Disable tag search to prevent worst-case O(N^2) performance
+					$noMoreGT = 1; # true --> 1
+					$$accum .= '&lt;';
+# FIXME тут ревлизлвать объектную часть
 					++$i;
-					continue;
+					next; # continue; --> next;
+				}
+print "+\n";
+				#// Handle ignored tags
+				if ( in_array( $lowerName, $ignoredTags ) ) {
+					$$accum .= '<ignore>' . htmlspecialchars( substr( $text, $i, $tagEndPos - $i + 1 ) ) . '</ignore>';
+#FIXME тут реализовать объектную часть
+					$i = $tagEndPos + 1;
+					next; # continue; --> next;
 				}
 
-				// Handle ignored tags
-				if ( in_array( $lowerName, $ignoredTags ) ) {
-					$accum .= '<ignore>' . htmlspecialchars( substr( $text, $i, $tagEndPos - $i + 1 ) ) . '</ignore>';
-					$i = $tagEndPos + 1;
-					continue;
-				}
 
 				$tagStartPos = $i;
-				if ( $text[$tagEndPos-1] == '/' ) {
+				if ( substr($text,$tagEndPos-1,1) eq '/' ) { # $text[$tagEndPos-1] --> substr($text,$tagEndPos-1,1) 
+print "zzzz\n";
 					$attrEnd = $tagEndPos - 1;
-					$inner = null;
+					$inner = undef;  # null --> undef
 					$i = $tagEndPos + 1;
 					$close = '';
 				} else {
 					$attrEnd = $tagEndPos;
-					// Find closing tag
-					if ( preg_match( "/<\/" . preg_quote( $name, '/' ) . "\s*>/i",
-							$text, $matches, PREG_OFFSET_CAPTURE, $tagEndPos + 1 ) )
+					#// Find closing tag
+					if ( preg_match( '/<\/' . preg_quote( $name, '/' ) . '\s*>/i',               #  all " --> '
+							$text, $matches, 'PREG_OFFSET_CAPTURE', $tagEndPos + 1 ) )   #  PREG_OFFSET_CAPTURE --> 'PREG_OFFSET_CAPTURE'
 					{
-						$inner = substr( $text, $tagEndPos + 1, $matches[0][1] - $tagEndPos - 1 );
-						$i = $matches[0][1] + strlen( $matches[0][0] );
-						$close = '<close>' . htmlspecialchars( $matches[0][0] ) . '</close>';
+						$inner = substr( $text, $tagEndPos + 1, substr($matches->[0],1,1) - $tagEndPos - 1 ); #  $matches[0][1] --> substr($matches->[0],1,1)
+print "||||||||||||||||",substr($matches->[0],0,1) , '--', substr($matches->[0],1,1),"\n";
+#						$i = $matches[0][1] + strlen( $matches[0][0] );
+#						$close = '<close>' . htmlspecialchars( $matches[0][0] ) . '</close>';
 					} else {
-						// No end tag -- let it run out to the end of the text.
+						#// No end tag -- let it run out to the end of the text.
 						$inner = substr( $text, $tagEndPos + 1 );
 						$i = $lengthText;
 						$close = '';
 					}
 				}
+=cut
 				// <includeonly> and <noinclude> just become <ignore> tags
 				if ( in_array( $lowerName, $ignoredElements ) ) {
 					$accum .= '<ignore>' . htmlspecialchars( substr( $text, $tagStartPos, $i - $tagStartPos ) )
@@ -297,9 +322,8 @@ while ()
 					$accum .= '<inner>' . htmlspecialchars( $inner ) . '</inner>';
 				}
 				$accum .= $close . '</ext>';
-			} elseif ( $found == 'line-start' ) {
 =cut
-if ( $found eq 'line-start' ) {
+			} elsif ( $found eq 'line-start' ) {
 				#// Is this the start of a heading?
 				#// Line break belongs before the heading element in any case
 				if ( $fakeLineStart ) {
