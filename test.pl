@@ -73,6 +73,12 @@ $str = "aaaa<pre/>"; # Это отдельный случай, и inner в эт�
 
 $str = "aaaa<pre>qqqqqq</pre>";
 
+$str = "aaaa<noinclude>  sdfsdfds '</noinclude>";
+
+$str = "aaaa<rss>qqqqqq</rss>";
+
+$str = "aaaa<rss/>bbb";  # тут нету inner в результирующем xml'е
+
 use Data::Dumper;
 print Dumper Mediawiki::Preparser::parse($str,{result=>'obj'});
 print Dumper Mediawiki::Preparser::parse($str,);

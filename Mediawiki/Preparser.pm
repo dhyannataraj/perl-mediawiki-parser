@@ -46,6 +46,7 @@ my $enableOnlyinclude = 1; # $enableOnlyinclude = false;
 #my $elementsRegex = "~($xmlishRegex)(?:\s|\/>|>)|(!--)~iA";
 
 my $ignoredTags = [ 'noinclude', '/noinclude', 'onlyinclude', '/onlyinclude' ]; # this list should be somehow confugurable, as it depends on how the atricle is used: is it is icluded in other article or not
+my $ignoredElements = [ 'noinclude', 'onlyinclude' ];
 
 my $xmlishRegex = 'pre|nowiki|gallery|rss|includeonly|noinclude|/noinclude|onlyinclude|/onlyinclude';
 		#// Use "A" modifier (anchored) instead of "^", because ^ doesn't work with an offset
@@ -253,8 +254,6 @@ while ()
 				$name = $matches->[1];  #   $matches[1] --> $matches->[1]
 				$lowerName = strtolower( $name );
 				$attrStart = $i + strlen( $name ) + 1;
-print "-\n";
-
 				#// Find end of tag
 				$tagEndPos = $noMoreGT ? undef : strpos( $text, '>', $attrStart );
 				if ( ! defined $tagEndPos  ) {  # $tagEndPos === false --> ! defined $tagEndPos
@@ -266,7 +265,6 @@ print "-\n";
 					++$i;
 					next; # continue; --> next;
 				}
-print "+\n";
 				#// Handle ignored tags
 				if ( in_array( $lowerName, $ignoredTags ) ) {
 					$$accum .= '<ignore>' . htmlspecialchars( substr( $text, $i, $tagEndPos - $i + 1 ) ) . '</ignore>';
@@ -274,11 +272,8 @@ print "+\n";
 					$i = $tagEndPos + 1;
 					next; # continue; --> next;
 				}
-
-
 				$tagStartPos = $i;
 				if ( substr($text,$tagEndPos-1,1) eq '/' ) { # $text[$tagEndPos-1] --> substr($text,$tagEndPos-1,1) 
-print "zzzz\n";
 					$attrEnd = $tagEndPos - 1;
 					$inner = undef;  # null --> undef
 					$i = $tagEndPos + 1;
@@ -289,40 +284,44 @@ print "zzzz\n";
 					if ( preg_match( '/<\/' . preg_quote( $name, '/' ) . '\s*>/i',               #  all " --> '
 							$text, $matches, 'PREG_OFFSET_CAPTURE', $tagEndPos + 1 ) )   #  PREG_OFFSET_CAPTURE --> 'PREG_OFFSET_CAPTURE'
 					{
-						$inner = substr( $text, $tagEndPos + 1, substr($matches->[0],1,1) - $tagEndPos - 1 ); #  $matches[0][1] --> substr($matches->[0],1,1)
-print "||||||||||||||||",substr($matches->[0],0,1) , '--', substr($matches->[0],1,1),"\n";
-#						$i = $matches[0][1] + strlen( $matches[0][0] );
-#						$close = '<close>' . htmlspecialchars( $matches[0][0] ) . '</close>';
+						$inner = substr( $text, $tagEndPos + 1, $matches->[0][1] - $tagEndPos - 1 );  # $matches[ --> $matches->[
+						$i = $matches->[0][1] + strlen( $matches->[0][0] );                           # $matches[ --> $matches->[
+						$close = '<close>' . htmlspecialchars( $matches->[0][0] ) . '</close>';       # $matches[ --> $matches->[
 					} else {
-						#// No end tag -- let it run out to the end of the text.
+						# // No end tag -- let it run out to the end of the text.
 						$inner = substr( $text, $tagEndPos + 1 );
 						$i = $lengthText;
 						$close = '';
 					}
 				}
-=cut
-				// <includeonly> and <noinclude> just become <ignore> tags
+				# // <includeonly> and <noinclude> just become <ignore> tags
 				if ( in_array( $lowerName, $ignoredElements ) ) {
-					$accum .= '<ignore>' . htmlspecialchars( substr( $text, $tagStartPos, $i - $tagStartPos ) )
+					$$accum .= '<ignore>' . htmlspecialchars( substr( $text, $tagStartPos, $i - $tagStartPos ) )
 						. '</ignore>';
-					continue;
+#FIXME add obj oriented implementation here
+# FIXME check how should it really work
+					next;  # continue; --> next;
 				}
-
-				$accum .= '<ext>';
+				$$accum .= '<ext>';
 				if ( $attrEnd <= $attrStart ) {
 					$attr = '';
 				} else {
 					$attr = substr( $text, $attrStart, $attrEnd - $attrStart );
 				}
-				$accum .= '<name>' . htmlspecialchars( $name ) . '</name>' .
-					// Note that the attr element contains the whitespace between name and attribute,
-					// this is necessary for precise reconstruction during pre-save transform.
+				$$accum .= '<name>' . htmlspecialchars( $name ) . '</name>' .
+					#// Note that the attr element contains the whitespace between name and attribute,
+					#// this is necessary for precise reconstruction during pre-save transform.
 					'<attr>' . htmlspecialchars( $attr ) . '</attr>';
-				if ( $inner !== null ) {
-					$accum .= '<inner>' . htmlspecialchars( $inner ) . '</inner>';
+				if ( defined $inner ) {   # $inner !== null --> defined $inner
+					$$accum .= '<inner>' . htmlspecialchars( $inner ) . '</inner>';
 				}
-				$accum .= $close . '</ext>';
-=cut
+				$$accum .= $close . '</ext>';
+
+
+
+
+
+
 			} elsif ( $found eq 'line-start' ) {
 				#// Is this the start of a heading?
 				#// Line break belongs before the heading element in any case
