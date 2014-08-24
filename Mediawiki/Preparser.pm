@@ -205,7 +205,7 @@ while ()
 						#// Unclosed comment in input, runs to end
 						$inner = substr( $text, $i );
 						$$accum .= '<comment>' . htmlspecialchars( $inner ) . '</comment>';
-# FIXME тут объектную реализацию сделать
+						$stack->appendObjAccum(_prepare_obj_comment(htmlspecialchars( $inner ), $i, 'unclosed'));  # perl specific
 						$i = $lengthText;
 					} else {
 						#// Search backwards for leading whitespace
@@ -225,9 +225,14 @@ while ()
 							#// Remove leading whitespace from the end of the accumulator
 							#// Sanity check first though
 							$wsLength = $i - $wsStart;
-							if ( $wsLength > 0 && substr( $accum, -$wsLength ) eq str_repeat( ' ', $wsLength ) ) { # === -> eq
-								$$accum = substr( $accum, 0, -$wsLength );
-#FIXME сделать что-то с объектной реализацией
+							if ( $wsLength > 0 && substr( $$accum, -$wsLength ) eq str_repeat( ' ', $wsLength ) ) { # === -> eq
+# According to the issue #2
+# https://github.com/dhyannataraj/perl-mediawiki-parser/issues/2
+# We will not add leading and trailing spaces for full line span comments inside comments object
+# So we will not clean spaces from obj accum as it is done for common $$accum
+# and _prepare_obj_comment() will actualy ignore leading spaces as it is still in the accum,
+# and add trailing spaces and \n to the accum after the comment as it should be
+								$$accum = substr( $$accum, 0, -$wsLength );
 							}
 							#// Do a line-start run next time to look for headings after the comment
 							$fakeLineStart = 1; # true -> 1
@@ -247,7 +252,7 @@ while ()
 						$i = $endPos + 1;
 						$inner = substr( $text, $startPos, $endPos - $startPos + 1 );
 						$$accum .= '<comment>' . htmlspecialchars( $inner ) . '</comment>';
-#FIXME реализовать тут объектную часть
+						$stack->appendObjAccum(_prepare_obj_comment(htmlspecialchars( $inner ), $startPos));
 					}
 					next; # continue; --> next;
 				}
@@ -316,7 +321,7 @@ while ()
 					$$accum .= '<inner>' . htmlspecialchars( $inner ) . '</inner>';
 				}
 				$$accum .= $close . '</ext>';
-
+#FIXME add obj oriented implementation here
 
 
 
@@ -583,10 +588,22 @@ sub _prepare_piece
     $piece->{parts}->[0]->{obj_accum}->[0] =~ s/$pattern//;
     shift @{$piece->{parts}->[0]->{obj_accum}} if $piece->{parts}->[0]->{obj_accum}->[0] eq '';
 
-    $pattern = '=' x $piece->{count} .'$';
-    $piece->{parts}->[0]->{obj_accum}->[-1] =~ s/$pattern//;
-    pop @{$piece->{parts}->[0]->{obj_accum}} if $piece->{parts}->[0]->{obj_accum}->[-1] eq '';
-    
+    # here we shuld remove some trailing equal signs. Teoretically. But practically 
+    # due to issue #1 https://github.com/dhyannataraj/perl-mediawiki-parser/issues/1
+    # we skip all comments and spaces and then remove needed ammount of equal signs
+    my $i = -1;
+    while (
+             ( (ref ($piece->{parts}->[0]->{obj_accum}->[$i]) ne '') && ($piece->{parts}->[0]->{obj_accum}->[$i]->{open} eq "<!--") ) ||
+             ( (ref ($piece->{parts}->[0]->{obj_accum}->[$i]) eq '') && ($piece->{parts}->[0]->{obj_accum}->[$i] =~ /^\s+$/) )
+          )
+    {
+      $i--;
+      last if (-$i >= int @{$piece->{parts}->[0]->{obj_accum}}); # do not miss the end of array :-)
+    }
+
+    $pattern = '=' x $piece->{count} .'(\s*)$';  # (\s*) also added here due to issue #1
+    $piece->{parts}->[0]->{obj_accum}->[$i] =~ s/$pattern/$1/;
+    pop @{$piece->{parts}->[0]->{obj_accum}} if $piece->{parts}->[0]->{obj_accum}->[$i] eq '';
   } else
   {
     my $title = shift @args;
@@ -597,9 +614,54 @@ sub _prepare_piece
   foreach my $part (@{$piece->{parts}})
   {
     delete $part->{out} ;
-    delete $part->{eqpos} ;
+    delete $part->{eqpos};
+    
+    delete $part->{visualEnd}; # do not think somebody will need these two, but it will make writing autotest simpler
+    delete $part->{commentEnd};
   }
   return $piece;
+}
+
+sub _prepare_obj_comment
+{
+  my $content = shift;
+  my $pos = shift;
+  my $unclosed = shift;
+  my $trailing_spaces = undef;
+  
+  $content =~ s/^(\s*)\&lt;\!--//;        #\s added here due to issue #2 
+  my $leading_spaces = $1;                # fix comment start position as it is given including leading spaces
+  $pos += length ($leading_spaces) if defined $leading_spaces;
+  
+  if (!$unclosed)
+  {
+    $content =~ s/--\&gt;(\s*)$//;
+    if ($1)
+    {
+      # spaces might come into somment text only in case described in issue #2 
+      # https://github.com/dhyannataraj/perl-mediawiki-parser/issues/2
+      # leading spaces is not removed from obj-accum, so we will just clear them
+      # trailing spaces are ommited, so we would have to add them back to the obj accum
+      $trailing_spaces  = $1;
+    }
+  }
+  my $res = {open => '<!--',
+             close => '-->',
+             'startPos' => $pos,
+              'parts' => [
+                          bless( {
+                                    'obj_accum' => [
+                                                     $content
+                                                   ]
+                                 }, 'Mediawiki::Preparser::Stack::Element::Part' )
+                          ],
+
+             };
+  $res->{unclosed} = 1 if $unclosed;
+  $res = bless ($res, 'Mediawiki::Preparser::Stack::Element');
+  
+  return $res unless $trailing_spaces;
+  return [$res, $trailing_spaces];
 }
 
 1;

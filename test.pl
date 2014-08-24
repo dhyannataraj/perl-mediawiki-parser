@@ -61,12 +61,20 @@ print "\n", $&;
 print "\n", $0;
 
 #print $&;
+
 =cut
-my $str = "sdf<!-- dsf '<1onlyinclude>  sdfsdfds '</1onlyinclude> "; # проверяем работу незаконченного комментария
-$str = "sdf<!-- dsf '<1onlyinclude>  sdfsdfds '</1onlyinclude> -->qqqq";
+my $str;
+
 $str = "sdf\n\n<!-- dsf '<1onlyinclude>  sdfsdfds '</1onlyinclude> -->\nqqqq"; # паррсер чистит вежущий перевод строки, если конец коментария на перевод строки заканчивается...  эту ветку тоже надо тестировать
 $str = "{{ sdf<!-- dsf '<1onlyinclude>  sdfsdfds '</1onlyinclude>--> }} "; # ситуация когда комментарий внутри какого-то объекта, -- это отдельная ветка кода
+
+
+    $str = "=== <!--1--> <!-- But there is a special case when header survives as a single === before comment if there is newline after comment end -->";
+    
+$str = "text\n  <!-- But there is a special case when header survives as a single === before comment if there is newline after comment end -->  \ntext2";
+
 # погрепать по commentEnd. Какой-то кейс обрабатывается при обработке заголовка. Написать тест и на эту ветку
+=cut
 $str = "aaaa<onlyinclude>  sdfsdfds '</onlyinclude>";
 
 $str = "aaaa<pre/>"; # Это отдельный случай, и inner в этом случае должен быть null/undef;
@@ -78,6 +86,8 @@ $str = "aaaa<noinclude>  sdfsdfds '</noinclude>";
 $str = "aaaa<rss>qqqqqq</rss>";
 
 $str = "aaaa<rss/>bbb";  # тут нету inner в результирующем xml'е
+
+=cut
 
 use Data::Dumper;
 print Dumper Mediawiki::Preparser::parse($str,{result=>'obj'});

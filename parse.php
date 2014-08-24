@@ -48,6 +48,19 @@ $text = 'a<!-- -->b';
 
 $text = 'qqqq<pre/>';
 
+
+$text = '<rss a="1" b="2"> {{qqqq}}</rss>';
+
+$text = "{{  <!-- Comment breakes templates }}-->\n===<!-- And headers ===\naaa-->bbb";
+
+$text = "Some text\n===<!-- And headers ===\na-->";
+
+$text = "= Header =<!--Comment-->";
+
+$text = "text
+  <!--some comment with two spaces after the end of the comment-->  
+some more text";
+
 /*
 if(isset($argv)){
     if(isset($argv[1]) && $argv[1]){

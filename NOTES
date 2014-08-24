@@ -4,3 +4,42 @@ this is a special case, that has it's own code.
 
 
 $xmlishRegex = 'pre|nowiki|gallery|rss|includeonly|noinclude|/noinclude|onlyinclude|/onlyinclude'
+
+
+
+Some text
+===<!-- Comment written this way ===
+And no text after the end of the comment-->
+
+
+Known Issues
+
+1. Mediawiki preparser has a bug that puts comments that follows after the heading right into header text,
+so if you try to parse the this text
+
+  ===<!-- Comment-->
+
+you will get the following xml:
+
+  <root><h level="1" i="1">===<comment><!-- Comment--></comment></h></root>
+
+As you can see comment is put inside <h></h> tags. perl-mediawiki-parser reimplement this behaviur and
+will create same xml and same object model: a header object with comment object inside.
+
+2. Original mediawiki parser have a special feature: if there is a comment that spans through a whole line
+(or through whole several lines) parser just remover the whole line. To achieve these it will put all
+leading and trailing spaces, including trailing end of line, inside a <comment></comment> tags. So
+
+  text
+    <!--some comment with two spaces after the end of the comment-->  
+  some more text
+
+will give
+
+  <root>text
+  <comment>  &lt;!--some comment with two spaces after the end of the comment--&gt;  
+  </comment>some more text</root>
+
+perl-mdiawikik-parser partly implements this feature: it will give exact same xml in xml-mode, but will
+leave spaces outside of comment object in object-mode. User should ignore empty lines with comments manually
+if he wishes.
